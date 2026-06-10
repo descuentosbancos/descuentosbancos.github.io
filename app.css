@@ -73,10 +73,45 @@ body {
 
 /* Controles */
 .controls { display: flex; flex-direction: column; gap: 10px; padding: 10px 0 6px; }
+.controls-top { display: flex; gap: 10px; align-items: stretch; }
 #buscar {
-  width: 100%; padding: 11px 14px; font-size: 15px;
+  flex: 1; min-width: 0; padding: 11px 14px; font-size: 15px;
   border: 1px solid var(--border); border-radius: 10px;
   background: var(--card); color: var(--text);
+}
+.vista-toggle {
+  display: flex; flex-shrink: 0; border: 1px solid var(--border);
+  border-radius: 10px; overflow: hidden; background: var(--card);
+}
+.vt {
+  border: 0; background: transparent; color: var(--muted2);
+  padding: 0 14px; font-size: 13px; font-weight: 700; cursor: pointer;
+  white-space: nowrap;
+}
+.vt.activo { background: var(--text); color: var(--bg); }
+
+/* Mapa */
+.mapa-barra { display: flex; align-items: center; gap: 12px; margin: 6px 0 10px; flex-wrap: wrap; }
+.btn-ubic {
+  border: 1.5px solid var(--verde); color: var(--verde); background: transparent;
+  padding: 8px 14px; border-radius: 999px; font-size: 13px; font-weight: 700; cursor: pointer;
+}
+.btn-ubic:hover { background: var(--verde); color: #fff; }
+.mapa-info { font-size: 12.5px; color: var(--muted); }
+#mapa {
+  height: 70vh; min-height: 420px; width: 100%; border-radius: 12px;
+  border: 1px solid var(--border); overflow: hidden; z-index: 0;
+}
+.leaflet-popup-content { margin: 10px 12px; font-size: 13px; line-height: 1.4; }
+.popup-nom { font-weight: 700; font-size: 14px; }
+.popup-bco { font-size: 11px; text-transform: uppercase; letter-spacing: .4px; font-weight: 700; }
+.popup-meta { color: #555; margin: 4px 0 8px; }
+.popup-links a { font-weight: 700; text-decoration: none; }
+.pin-num {
+  background: var(--pincolor, #333); color: #fff; border: 2px solid #fff;
+  border-radius: 999px; width: 28px; height: 28px; display: flex;
+  align-items: center; justify-content: center; font-weight: 800; font-size: 12px;
+  box-shadow: 0 1px 4px rgba(0,0,0,.4);
 }
 .chips { display: flex; flex-wrap: wrap; gap: 6px; }
 .chip {

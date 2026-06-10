@@ -15,7 +15,11 @@ const DIAS = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
 const EMOJI = { delivery: "🍕", restaurante: "🍽️", cafe: "☕", supermercado: "🛒" };
 const MAX_POR_BANCO = 24; // la web tiene más espacio que el correo
 
-const state = { dia: diaSantiago(), q: "", bancos: new Set(BANCOS.map(b => b.nombre)), data: [] };
+const state = {
+  dia: diaSantiago(), q: "", bancos: new Set(BANCOS.map(b => b.nombre)),
+  data: [], vista: "lista", user: null,
+};
+let MAPA = null, CAPA = null, USERMARK = null; // Leaflet lazy
 
 function diaSantiago() {
   // Día ISO (1=Lun..7=Dom) en America/Santiago, sin importar el tz del visitante.
@@ -140,6 +144,95 @@ function render() {
   if (!alguno) {
     res.innerHTML = `<div class="vacio">Nada con esos filtros 😕 — prueba con otro día o limpia la búsqueda.</div>`;
   }
+
+  // Alternar vista lista/mapa.
+  const enMapa = state.vista === "mapa";
+  document.getElementById("mapa-vista").hidden = !enMapa;
+  document.getElementById("destacados-sec").hidden = enMapa || top.length < 2;
+  document.getElementById("resultado").hidden = enMapa;
+  document.getElementById("como-funciona").hidden = enMapa;
+  document.getElementById("ver-lista").classList.toggle("activo", !enMapa);
+  document.getElementById("ver-mapa").classList.toggle("activo", enMapa);
+  if (enMapa) renderMapa(items);
+}
+
+function distancia(a, b) { // metros (haversine)
+  const R = 6371000, rad = x => x * Math.PI / 180;
+  const dLat = rad(b.lat - a.lat), dLng = rad(b.lng - a.lng);
+  const s = Math.sin(dLat / 2) ** 2 +
+    Math.cos(rad(a.lat)) * Math.cos(rad(b.lat)) * Math.sin(dLng / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(s));
+}
+function fmtDist(m) { return m < 1000 ? `${Math.round(m / 10) * 10} m` : `${(m / 1000).toFixed(1)} km`; }
+
+function renderMapa(items) {
+  if (!MAPA) {
+    MAPA = L.map("mapa", { scrollWheelZoom: true }).setView([-33.45, -70.66], 12);
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      attribution: '&copy; OpenStreetMap', maxZoom: 19,
+    }).addTo(MAPA);
+    CAPA = L.layerGroup().addTo(MAPA);
+  }
+  setTimeout(() => MAPA.invalidateSize(), 50); // por el hidden previo
+
+  const conGeo = items.filter(d => typeof d.lat === "number");
+  CAPA.clearLayers();
+  const bounds = [];
+  for (const d of conGeo) {
+    const bco = BANCOS.find(b => b.nombre === d.banco) || { color: "#333" };
+    const icon = L.divIcon({
+      className: "", iconSize: [28, 28], iconAnchor: [14, 14],
+      html: `<div class="pin-num" style="--pincolor:${bco.color}">${d.pct}</div>`,
+    });
+    L.marker([d.lat, d.lng], { icon }).addTo(CAPA).bindPopup(popup(d, bco));
+    bounds.push([d.lat, d.lng]);
+  }
+  if (USERMARK) USERMARK.addTo(MAPA);
+
+  const total = items.length, info = document.getElementById("mapa-info");
+  if (state.user) marcarCercano(conGeo);
+  else info.textContent = `${conGeo.length} de ${total} con ubicación · toca 📍 para ver el más cercano`;
+
+  if (bounds.length && !state.user) MAPA.fitBounds(bounds, { padding: [40, 40], maxZoom: 15 });
+}
+
+function popup(d, bco) {
+  const tope = d.tope ? "tope $" + d.tope.toLocaleString("es-CL") : (d.sin_tope ? "sin tope" : "");
+  const meta = [dias_label(d.dias), tope, d.condicion].filter(Boolean).map(esc).join(" · ");
+  const ver = d.url ? `<a href="${esc(d.url)}" target="_blank" rel="noopener" style="color:${bco.color}">Ver oferta →</a> · ` : "";
+  const ruta = `https://www.google.com/maps/dir/?api=1&destination=${d.lat},${d.lng}`;
+  return `<div class="popup-nom">hasta ${d.pct}% · ${EMOJI[d.subcat] || "🍴"} ${esc(d.comercio)}</div>
+    <div class="popup-bco" style="color:${bco.color}">${esc(d.banco)}</div>
+    <div class="popup-meta">${meta}</div>
+    <div class="popup-links">${ver}<a href="${ruta}" target="_blank" rel="noopener">Cómo llegar 🧭</a></div>`;
+}
+
+function marcarCercano(conGeo) {
+  const info = document.getElementById("mapa-info");
+  if (!conGeo.length) { info.textContent = "No hay locales con ubicación para este filtro."; return; }
+  let mejor = null, dmin = Infinity;
+  for (const d of conGeo) {
+    const dist = distancia(state.user, d);
+    if (dist < dmin) { dmin = dist; mejor = d; }
+  }
+  info.innerHTML = `📍 Más cerca: <b>${esc(mejor.comercio)}</b> (${mejor.pct}%, a ${fmtDist(dmin)})`;
+  MAPA.fitBounds([[state.user.lat, state.user.lng], [mejor.lat, mejor.lng]],
+    { padding: [60, 60], maxZoom: 16 });
+}
+
+function ubicar() {
+  const info = document.getElementById("mapa-info");
+  if (!navigator.geolocation) { info.textContent = "Tu navegador no permite ubicación."; return; }
+  info.textContent = "Obteniendo tu ubicación…";
+  navigator.geolocation.getCurrentPosition(pos => {
+    state.user = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+    if (USERMARK) MAPA.removeLayer(USERMARK);
+    USERMARK = L.circleMarker([state.user.lat, state.user.lng], {
+      radius: 9, color: "#1a73e8", fillColor: "#1a73e8", fillOpacity: .9, weight: 3,
+    }).addTo(MAPA).bindPopup("Estás aquí");
+    render();
+  }, () => { info.textContent = "No pudimos obtener tu ubicación (revisa los permisos)."; },
+    { enableHighAccuracy: true, timeout: 10000 });
 }
 
 function card(d, bco) {
@@ -173,6 +266,9 @@ async function init() {
   document.getElementById("buscar").addEventListener("input", e => {
     state.q = e.target.value; render();
   });
+  document.getElementById("ver-lista").onclick = () => { state.vista = "lista"; render(); };
+  document.getElementById("ver-mapa").onclick = () => { state.vista = "mapa"; render(); };
+  document.getElementById("btn-ubicacion").onclick = ubicar;
   try {
     const r = await fetch("data.json", { cache: "no-cache" });
     const j = await r.json();
