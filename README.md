@@ -1,6 +1,6 @@
-# descuentos-web
+# descuentosbancos.github.io
 
-Sitio estático de **Descuentos en comida · Santiago** (GitHub Pages).
+Sitio estático de **DescuentosBancos** — descuentos en comida · Santiago (GitHub Pages).
 
 - `index.html` + `app.css` + `app.js`: página única que renderiza `data.json`
   con pestañas por día, buscador y filtro por banco. El filtro de vigencia
