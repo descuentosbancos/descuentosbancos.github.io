@@ -144,8 +144,8 @@ h2 { font-size: 17px; margin: 18px 0 10px; }
 .banco-head .cnt { font-size: 12px; opacity: .9; }
 .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
 @media (max-width: 1100px) { .grid { grid-template-columns: repeat(3, 1fr); } }
-@media (max-width: 820px)  { .grid { grid-template-columns: 1fr 1fr; } }
-@media (max-width: 540px)  { .grid { grid-template-columns: 1fr; } }
+@media (max-width: 820px)  { .grid { grid-template-columns: 1fr 1fr; gap: 7px; } }
+/* En móvil se mantienen 2 columnas (no 1) para que la página no quede larga. */
 
 .cardo {
   background: var(--card); border: 1px solid var(--border);
