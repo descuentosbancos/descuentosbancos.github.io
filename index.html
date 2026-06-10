@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Descuentos en comida · Santiago | bancos chilenos, actualizado</title>
+<meta name="description" content="Los descuentos de comida de hoy en Santiago: restaurantes, cafés y delivery con CMR Falabella, Banco de Chile, BCI, Santander, Itaú y BICE. Actualizado automáticamente.">
+<meta property="og:title" content="🍽️ Descuentos en comida · Santiago">
+<meta property="og:description" content="Restaurantes, cafés y delivery con descuento hoy según tu banco. Gratis y actualizado.">
+<meta name="color-scheme" content="light dark">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🍽️</text></svg>">
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+
+<header class="hero">
+  <div class="wrap">
+    <div class="hero-kicker">Santiago · actualizado automáticamente</div>
+    <h1>🍽️ Descuentos en comida</h1>
+    <p class="hero-sub" id="hero-sub">Cargando ofertas…</p>
+    <a class="btn-cta" id="cta-form" href="#" target="_blank" rel="noopener">
+      📬 Recíbelo por correo cada mañana — gratis
+    </a>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <!-- Selector de día -->
+  <nav class="tabs" id="tabs" aria-label="Día de la semana"></nav>
+
+  <!-- Controles: buscador + filtro por banco -->
+  <div class="controls">
+    <input type="search" id="buscar" placeholder="Buscar restaurante o café…" aria-label="Buscar">
+    <div class="chips" id="chips" aria-label="Filtrar por banco"></div>
+  </div>
+
+  <!-- Destacados del día -->
+  <section id="destacados-sec" hidden>
+    <h2>⭐ Destacados</h2>
+    <div class="destacados" id="destacados"></div>
+  </section>
+
+  <!-- Listado por banco -->
+  <div id="resultado"></div>
+
+  <!-- Cómo funciona -->
+  <section class="como" id="como-funciona">
+    <h2>¿Cómo funciona?</h2>
+    <ul>
+      <li>Reunimos en un solo lugar los <b>descuentos de comida</b> (restaurantes, cafés y delivery) que publican <b>CMR Falabella, Banco de Chile, BCI, Santander, Itaú y BICE</b> para Santiago.</li>
+      <li>Los datos se actualizan <b>automáticamente</b> desde los sitios de los bancos (los lunes y el día 1 de cada mes). Las ofertas vencidas se ocultan solas.</li>
+      <li>El porcentaje es el <b>máximo</b> («hasta X%»): puede variar según tarjeta (débito/crédito) o local. Cuando el banco lo informa, mostramos el tope y la tarjeta requerida.</li>
+      <li><b>Verifica siempre</b> las condiciones en la app o sitio del banco antes de pagar — toca «Ver →» en cada oferta.</li>
+      <li>Este sitio es independiente: <b>no está afiliado</b> a ningún banco.</li>
+    </ul>
+    <div class="como-cta">
+      <p>¿Prefieres no entrar todos los días? Suscríbete y cada mañana (~10:05) te llega <b>gratis</b> el resumen del día a tu correo.</p>
+      <a class="btn-cta" id="cta-form-2" href="#" target="_blank" rel="noopener">📬 Suscribirme al correo diario</a>
+    </div>
+  </section>
+
+</main>
+
+<footer class="pie">
+  <div class="wrap">
+    <span id="generado"></span> ·
+    Los descuentos pueden estar sujetos a condiciones de cada banco.
+    Sitio independiente, sin afiliación con los bancos mencionados.
+  </div>
+</footer>
+
+<script src="app.js"></script>
+</body>
+</html>

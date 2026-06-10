@@ -1,0 +1,150 @@
+/* Descuentos en comida · Santiago — estilos (mismo lenguaje visual del correo) */
+
+:root {
+  --bg: #f4f5f7;
+  --card: #ffffff;
+  --text: #1f2933;
+  --muted: #7b8794;
+  --muted2: #52606d;
+  --border: #e4e7eb;
+  --badge-bg: #eef2f6;
+  --badge-tx: #3e4c59;
+  --verde: #2DB94C;
+  --amber-bg: #fff4e0;
+  --amber-tx: #a05a00;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0e1014;
+    --card: #1b1e25;
+    --text: #e8eaed;
+    --muted: #9aa5b1;
+    --muted2: #b7c0ca;
+    --border: #2b2f37;
+    --badge-bg: #2b2f37;
+    --badge-tx: #d6dbe1;
+    --amber-bg: #3a2c10;
+    --amber-tx: #ffce80;
+  }
+}
+
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+  line-height: 1.45;
+}
+.wrap { max-width: 760px; margin: 0 auto; padding: 0 16px; }
+
+/* Hero */
+.hero {
+  background: linear-gradient(135deg, #1f2933 0%, #3e4c59 100%);
+  color: #fff;
+  padding: 36px 0 30px;
+  text-align: center;
+}
+.hero-kicker {
+  font-size: 12px; letter-spacing: 1.5px; text-transform: uppercase;
+  opacity: .75; margin-bottom: 6px;
+}
+.hero h1 { font-size: clamp(26px, 6vw, 34px); margin: 0 0 6px; }
+.hero-sub { font-size: 15px; opacity: .85; margin: 0 0 18px; }
+.btn-cta {
+  display: inline-block; background: var(--verde); color: #fff;
+  text-decoration: none; font-weight: 700; font-size: 14px;
+  padding: 12px 22px; border-radius: 8px;
+}
+.btn-cta:hover { filter: brightness(1.08); }
+
+/* Tabs de día */
+.tabs {
+  display: flex; gap: 6px; overflow-x: auto;
+  padding: 16px 0 4px; -webkit-overflow-scrolling: touch;
+}
+.tab {
+  border: 1px solid var(--border); background: var(--card); color: var(--text);
+  padding: 8px 14px; border-radius: 999px; font-size: 13px; font-weight: 600;
+  cursor: pointer; white-space: nowrap;
+}
+.tab.activo { background: var(--text); color: var(--bg); border-color: var(--text); }
+.tab .n { opacity: .55; font-weight: 600; font-size: 11px; }
+
+/* Controles */
+.controls { display: flex; flex-direction: column; gap: 10px; padding: 10px 0 6px; }
+#buscar {
+  width: 100%; padding: 11px 14px; font-size: 15px;
+  border: 1px solid var(--border); border-radius: 10px;
+  background: var(--card); color: var(--text);
+}
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip {
+  border: 1.5px solid var(--chipcolor, var(--border));
+  color: var(--chipcolor, var(--text));
+  background: transparent; padding: 5px 12px; border-radius: 999px;
+  font-size: 12px; font-weight: 700; cursor: pointer;
+}
+.chip.activo { background: var(--chipcolor); color: #fff; }
+.chip.apagado { opacity: .35; }
+
+/* Destacados */
+h2 { font-size: 17px; margin: 18px 0 10px; }
+.destacados { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+@media (max-width: 540px) { .destacados { grid-template-columns: 1fr; } }
+.dest {
+  border-radius: 10px; color: #fff; text-decoration: none;
+  padding: 14px 10px; text-align: center; display: block;
+}
+.dest .pct { font-size: 26px; font-weight: 800; line-height: 1; }
+.dest .hasta { font-size: 9px; text-transform: uppercase; letter-spacing: .5px; opacity: .85; }
+.dest .nom { font-size: 13px; font-weight: 700; margin-top: 6px; }
+.dest .bco { font-size: 10px; opacity: .9; margin-top: 3px; text-transform: uppercase; letter-spacing: .5px; }
+
+/* Secciones por banco */
+.banco-head {
+  margin: 22px 0 10px; padding: 12px 16px; border-radius: 10px; color: #fff;
+}
+.banco-head .nom { font-size: 17px; font-weight: 700; }
+.banco-head .cnt { font-size: 12px; opacity: .9; }
+.grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+@media (max-width: 540px) { .grid { grid-template-columns: 1fr; } }
+
+.cardo {
+  background: var(--card); border: 1px solid var(--border);
+  border-left: 4px solid var(--bcolor, var(--border));
+  border-radius: 8px; padding: 12px;
+}
+.cardo .fila { display: flex; justify-content: space-between; gap: 8px; align-items: flex-start; }
+.cardo .nom { font-size: 14px; font-weight: 600; color: var(--text); text-decoration: none; line-height: 1.3; }
+.cardo .nom:hover { text-decoration: underline; }
+.cardo .pct { text-align: right; color: var(--bcolor); white-space: nowrap; }
+.cardo .pct .hasta { display: block; font-size: 9px; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; }
+.cardo .pct .num { font-size: 20px; font-weight: 800; }
+.meta { margin-top: 8px; font-size: 11.5px; color: var(--muted); }
+.badge {
+  display: inline-block; background: var(--badge-bg); color: var(--badge-tx);
+  padding: 3px 9px; border-radius: 999px; font-weight: 600; font-size: 11px;
+}
+.badge.ultimo { background: var(--amber-bg); color: var(--amber-tx); font-weight: 700; }
+.meta a { color: var(--bcolor); font-weight: 700; text-decoration: none; white-space: nowrap; }
+
+.vacio {
+  text-align: center; color: var(--muted); padding: 40px 10px; font-size: 14px;
+}
+
+/* Cómo funciona */
+.como {
+  margin: 34px 0 8px; background: var(--card); border: 1px solid var(--border);
+  border-radius: 12px; padding: 18px 20px;
+}
+.como ul { margin: 8px 0; padding-left: 20px; }
+.como li { margin: 7px 0; font-size: 14px; color: var(--muted2); }
+.como-cta { text-align: center; margin-top: 14px; }
+.como-cta p { font-size: 13.5px; color: var(--muted2); }
+
+/* Footer */
+.pie {
+  margin-top: 26px; padding: 18px 0 30px; font-size: 11.5px;
+  color: var(--muted); text-align: center; border-top: 1px solid var(--border);
+}
