@@ -17,7 +17,7 @@
 
 <header class="hero">
   <div class="wrap">
-    <div class="hero-kicker">Descuentos en comida · Santiago · actualizado automáticamente</div>
+    <div class="hero-kicker">Comida · Santiago · actualizado solo</div>
     <h1>🍽️ DescuentosBancos</h1>
     <p class="hero-sub" id="hero-sub">Cargando ofertas…</p>
     <a class="btn-cta" id="cta-form" href="#" target="_blank" rel="noopener">
@@ -26,22 +26,25 @@
   </div>
 </header>
 
-<main class="wrap">
-
-  <!-- Selector de día -->
-  <nav class="tabs" id="tabs" aria-label="Día de la semana"></nav>
-
-  <!-- Controles: buscador + filtro por banco + vista lista/mapa -->
-  <div class="controls">
+<!-- Controles: día + buscador + filtro por banco + vista lista/mapa.
+     Va FUERA de <main> para que la barra pegajosa ocupe todo el ancho. -->
+<div class="toolbar">
+  <div class="wrap toolbar-inner">
+    <nav class="tabs" id="tabs" aria-label="Día de la semana"></nav>
     <div class="controls-top">
-      <input type="search" id="buscar" placeholder="Buscar restaurante o café…" aria-label="Buscar">
-      <div class="vista-toggle" role="tablist" aria-label="Vista">
-        <button id="ver-lista" class="vt activo">☰ Lista</button>
-        <button id="ver-mapa" class="vt">🗺️ Mapa</button>
+      <div class="buscador">
+        <input type="search" id="buscar" placeholder="Buscar restaurante o café…" aria-label="Buscar restaurante o café">
+      </div>
+      <div class="vista-toggle" role="group" aria-label="Cambiar vista">
+        <button id="ver-lista" class="vt activo" aria-pressed="true">☰ Lista</button>
+        <button id="ver-mapa" class="vt" aria-pressed="false">🗺️ Mapa</button>
       </div>
     </div>
-    <div class="chips" id="chips" aria-label="Filtrar por banco"></div>
+    <div class="chips" id="chips" role="group" aria-label="Filtrar por banco"></div>
   </div>
+</div>
+
+<main class="wrap">
 
   <!-- Vista mapa -->
   <section id="mapa-vista" hidden>
@@ -54,7 +57,7 @@
 
   <!-- Destacados del día -->
   <section id="destacados-sec" hidden>
-    <h2>⭐ Destacados</h2>
+    <h2>⭐ Lo mejor de hoy</h2>
     <div class="destacados" id="destacados"></div>
   </section>
 
