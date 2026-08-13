@@ -2,14 +2,27 @@
    Lee data.json (exportado por el repo de datos) y renderiza con los mismos
    criterios del correo: día seleccionado, vigencia (fecha Santiago), top por %. */
 
+// `pin`: el color de marca oscurecido lo justo para que el % en BLANCO se lea
+// dentro del pin. El verde y el naranjo crudos daban ~2.5:1 sobre blanco.
 const BANCOS = [
-  { nombre: "CMR Falabella", color: "#2DB94C", url: "https://bancofalabella.cl/descuentos" },
-  { nombre: "Banco de Chile", color: "#003087", url: "https://www.bancochile.cl/personas/beneficios" },
-  { nombre: "BCI",            color: "#0033A0", url: "https://www.bci.cl/personas/beneficios" },
-  { nombre: "Santander",      color: "#EC0000", url: "https://banco.santander.cl/personas/beneficios" },
-  { nombre: "Itaú",           color: "#EC7000", url: "https://www.itau.cl/personas/beneficios" },
-  { nombre: "BICE",           color: "#004B8D", url: "https://www.bice.cl/personas/beneficios" },
+  { nombre: "CMR Falabella", color: "#2DB94C", pin: "#1B7A34", url: "https://bancofalabella.cl/descuentos" },
+  { nombre: "Banco de Chile", color: "#003087", pin: "#003087", url: "https://www.bancochile.cl/personas/beneficios" },
+  { nombre: "BCI",            color: "#0033A0", pin: "#0033A0", url: "https://www.bci.cl/personas/beneficios" },
+  { nombre: "Santander",      color: "#EC0000", pin: "#BF0000", url: "https://banco.santander.cl/personas/beneficios" },
+  { nombre: "Itaú",           color: "#EC7000", pin: "#A85000", url: "https://www.itau.cl/personas/beneficios" },
+  { nombre: "BICE",           color: "#004B8D", pin: "#004B8D", url: "https://www.bice.cl/personas/beneficios" },
 ];
+
+// Base del mapa: CARTO en vez de OpenStreetMap crudo. El OSM estándar mete
+// escudos de ruta, relieve y carreteras de colores que tapaban los pines; estas
+// están diseñadas como FONDO, y hay variante oscura para el tema oscuro.
+const TILES = {
+  claro: "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",
+  oscuro: "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",
+};
+const TILES_ATTR = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> ' +
+                   '&copy; <a href="https://carto.com/attributions">CARTO</a>';
+const temaOscuro = () => matchMedia("(prefers-color-scheme: dark)").matches;
 const FORM_URL = "https://docs.google.com/forms/d/e/1FAIpQLScfOH3mzOrMN5hBaX74k2IFxHrfxanplOuyTMGKnz-a6hTYDA/viewform";
 const DIAS = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
 const DIA_LARGO = ["lunes", "martes", "miércoles", "jueves", "viernes",
@@ -196,46 +209,94 @@ function distancia(a, b) { // metros (haversine)
 }
 function fmtDist(m) { return m < 1000 ? `${Math.round(m / 10) * 10} m` : `${(m / 1000).toFixed(1)} km`; }
 
+let TILELAYER = null, FIRMA_VISTA = null;
+
+function crearMapa() {
+  MAPA = L.map("mapa", { scrollWheelZoom: true, zoomControl: false })
+    .setView([-33.45, -70.66], 12);
+  L.control.zoom({ position: "bottomright" }).addTo(MAPA);
+  TILELAYER = L.tileLayer(TILES[temaOscuro() ? "oscuro" : "claro"], {
+    attribution: TILES_ATTR, maxZoom: 19,
+  }).addTo(MAPA);
+
+  // Sin agrupar, media docena de pines quedaban encimados e ilegibles en
+  // Providencia/Las Condes. Al acercar, el grupo se abre solo.
+  CAPA = L.markerClusterGroup({
+    showCoverageOnHover: false,
+    maxClusterRadius: 46,
+    spiderfyDistanceMultiplier: 1.4,
+    iconCreateFunction: grupo => {
+      const hijos = grupo.getAllChildMarkers();
+      const max = Math.max(...hijos.map(m => m.options.pct || 0));
+      return L.divIcon({
+        className: "",
+        iconSize: [42, 42], iconAnchor: [21, 21],
+        html: `<div class="cluster-pin"><b>${hijos.length}</b>` +
+              `<span>${max}%</span></div>`,
+      });
+    },
+  }).addTo(MAPA);
+
+  // Si el visitante cambia el tema del sistema con el mapa abierto.
+  matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => {
+    if (TILELAYER) TILELAYER.setUrl(TILES[temaOscuro() ? "oscuro" : "claro"]);
+  });
+}
+
 function renderMapa(items) {
-  if (!MAPA) {
-    MAPA = L.map("mapa", { scrollWheelZoom: true }).setView([-33.45, -70.66], 12);
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      attribution: '&copy; OpenStreetMap', maxZoom: 19,
-    }).addTo(MAPA);
-    CAPA = L.layerGroup().addTo(MAPA);
-  }
+  if (!MAPA) crearMapa();
   setTimeout(() => MAPA.invalidateSize(), 50); // por el hidden previo
 
   const conGeo = items.filter(d => typeof d.lat === "number");
   CAPA.clearLayers();
-  const bounds = [];
-  for (const d of conGeo) {
-    const bco = BANCOS.find(b => b.nombre === d.banco) || { color: "#333" };
+  const marcadores = [], bounds = [];
+  // Los de mayor % se agregan al final para que queden ENCIMA al solaparse.
+  for (const d of [...conGeo].sort((a, b) => a.pct - b.pct)) {
+    const bco = BANCOS.find(b => b.nombre === d.banco) || { color: "#333", pin: "#333" };
     const icon = L.divIcon({
-      className: "", iconSize: [28, 28], iconAnchor: [14, 14],
-      html: `<div class="pin-num" style="--pincolor:${bco.color}">${d.pct}</div>`,
+      className: "", iconSize: [34, 34], iconAnchor: [17, 17],
+      html: `<div class="pin-num" style="--pincolor:${bco.pin}">${d.pct}<i>%</i></div>`,
     });
-    L.marker([d.lat, d.lng], { icon }).addTo(CAPA).bindPopup(popup(d, bco));
+    marcadores.push(L.marker([d.lat, d.lng], { icon, pct: d.pct })
+      .bindPopup(popup(d, bco), { closeButton: true, maxWidth: 260 }));
     bounds.push([d.lat, d.lng]);
   }
+  CAPA.addLayers(marcadores);
   if (USERMARK) USERMARK.addTo(MAPA);
 
   const total = items.length, info = document.getElementById("mapa-info");
   if (state.user) marcarCercano(conGeo);
-  else info.textContent = `${conGeo.length} de ${total} con ubicación · toca 📍 para ver el más cercano`;
+  else info.innerHTML = `<b>${conGeo.length}</b> de ${total} con ubicación · ` +
+    `toca 📍 para ver el más cercano`;
 
-  if (bounds.length && !state.user) MAPA.fitBounds(bounds, { padding: [40, 40], maxZoom: 15 });
+  // Reencuadrar SOLO si cambió el conjunto de locales: antes se reencuadraba
+  // en cada render y el mapa saltaba con cada tecla del buscador.
+  const firma = bounds.map(b => b.join()).sort().join("|");
+  if (bounds.length && !state.user && firma !== FIRMA_VISTA) {
+    MAPA.fitBounds(bounds, { padding: [50, 50], maxZoom: 15 });
+  }
+  FIRMA_VISTA = firma;
 }
 
 function popup(d, bco) {
-  const tope = d.tope ? "tope $" + d.tope.toLocaleString("es-CL") : (d.sin_tope ? "sin tope" : "");
-  const meta = [dias_label(d.dias), tope, d.condicion].filter(Boolean).map(esc).join(" · ");
-  const ver = d.url ? `<a href="${esc(d.url)}" target="_blank" rel="noopener" style="color:${bco.color}">Ver oferta →</a> · ` : "";
+  const badges = [dias_label(d.dias), fmtTope(d), d.condicion]
+    .filter(Boolean)
+    .map(t => `<span class="pb">${esc(t)}</span>`).join("");
   const ruta = `https://www.google.com/maps/dir/?api=1&destination=${d.lat},${d.lng}`;
-  return `<div class="popup-nom">hasta ${d.pct}% · ${EMOJI[d.subcat] || "🍴"} ${esc(d.comercio)}</div>
-    <div class="popup-bco" style="color:${bco.color}">${esc(d.banco)}</div>
-    <div class="popup-meta">${meta}</div>
-    <div class="popup-links">${ver}<a href="${ruta}" target="_blank" rel="noopener">Cómo llegar 🧭</a></div>`;
+  const ver = d.url
+    ? `<a class="pl-primario" style="background:${bco.pin}" href="${esc(d.url)}" target="_blank" rel="noopener">Ver oferta →</a>`
+    : "";
+  return `<div class="pop">
+    <div class="pop-top">
+      <div class="pop-pct" style="color:${bco.pin}">${d.pct}<i>%</i></div>
+      <div>
+        <div class="pop-nom">${EMOJI[d.subcat] || "🍴"} ${esc(d.comercio)}</div>
+        <div class="pop-bco" style="color:${bco.pin}">${esc(d.banco)}</div>
+      </div>
+    </div>
+    ${badges ? `<div class="pop-badges">${badges}</div>` : ""}
+    <div class="pop-links">${ver}<a class="pl-ruta" href="${ruta}" target="_blank" rel="noopener">🧭 Cómo llegar</a></div>
+  </div>`;
 }
 
 function marcarCercano(conGeo) {

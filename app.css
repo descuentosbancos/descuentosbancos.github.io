@@ -563,26 +563,103 @@ h2 {
   z-index: 0;
   box-shadow: var(--sombra-1);
 }
-.leaflet-popup-content { margin: 12px 14px; font-size: 13px; line-height: 1.45; }
-.leaflet-popup-content-wrapper { border-radius: var(--r-md); }
-.popup-nom { font-weight: 750; font-size: 14.5px; color: #1c1a17; }
-.popup-bco {
-  font-size: 10.5px; text-transform: uppercase;
-  letter-spacing: .07em; font-weight: 750; margin-top: 2px;
-}
-.popup-meta { color: #6b6560; margin: 6px 0 9px; font-size: 12px; }
-.popup-links a { font-weight: 700; text-decoration: none; }
+/* Pines. El anillo blanco los despega del fondo tanto en tema claro como
+   oscuro; el % en blanco se lee porque `pin` ya viene oscurecido desde app.js. */
 .pin-num {
   background: var(--pincolor, #333);
   color: #fff;
   border: 2.5px solid #fff;
   border-radius: 999px;
-  width: 30px; height: 30px;
-  display: flex; align-items: center; justify-content: center;
-  font-weight: 800; font-size: 11.5px;
+  width: 34px; height: 34px;
+  display: flex; align-items: baseline; justify-content: center;
+  gap: .5px;
+  padding-top: 9px;
+  font-weight: 800; font-size: 13px;
+  letter-spacing: -.02em;
   font-variant-numeric: tabular-nums;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, .35);
+  box-shadow: 0 2px 7px rgba(0, 0, 0, .34);
+  transition: transform .12s ease;
 }
+.pin-num i { font-style: normal; font-size: 8px; font-weight: 700; opacity: .85; }
+.leaflet-marker-icon:hover .pin-num { transform: scale(1.12); }
+
+/* Grupo de pines: número de locales + el mejor % que esconde. */
+.cluster-pin {
+  width: 42px; height: 42px;
+  border-radius: 999px;
+  background: var(--text);
+  color: var(--bg);
+  border: 2.5px solid #fff;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  line-height: 1;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, .38);
+  font-variant-numeric: tabular-nums;
+}
+.cluster-pin b { font-size: 14px; font-weight: 850; }
+.cluster-pin span { font-size: 8.5px; font-weight: 700; opacity: .7; margin-top: 2px; }
+
+/* Controles y créditos, para que no desentonen con el resto. */
+.leaflet-control-zoom { border: 0 !important; box-shadow: var(--sombra-2) !important; }
+.leaflet-control-zoom a {
+  background: var(--surface) !important;
+  color: var(--text) !important;
+  border-color: var(--border) !important;
+  width: 32px !important; height: 32px !important; line-height: 30px !important;
+}
+.leaflet-control-zoom a:hover { background: var(--surface-2) !important; }
+.leaflet-control-zoom a:first-child { border-radius: var(--r-sm) var(--r-sm) 0 0 !important; }
+.leaflet-control-zoom a:last-child { border-radius: 0 0 var(--r-sm) var(--r-sm) !important; }
+.leaflet-control-attribution {
+  background: color-mix(in srgb, var(--surface) 85%, transparent) !important;
+  color: var(--muted) !important;
+  font-size: 10px !important;
+  border-radius: var(--r-sm) 0 0 0;
+}
+.leaflet-control-attribution a { color: var(--muted) !important; }
+
+/* Popup: mismo lenguaje que las tarjetas. */
+.leaflet-popup-content-wrapper {
+  border-radius: var(--r-md);
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: var(--sombra-3);
+  padding: 0;
+}
+.leaflet-popup-content { margin: 0; font-size: 13px; line-height: 1.45; width: auto !important; }
+.leaflet-popup-tip { background: var(--surface); }
+.leaflet-container a.leaflet-popup-close-button { color: var(--muted); }
+.pop { padding: 13px 14px 12px; }
+.pop-top { display: flex; align-items: center; gap: 11px; }
+.pop-pct {
+  font-size: 25px; font-weight: 850; line-height: 1;
+  letter-spacing: -.03em; font-variant-numeric: tabular-nums; flex-shrink: 0;
+}
+.pop-pct i { font-style: normal; font-size: 13px; }
+.pop-nom { font-weight: 750; font-size: 14px; color: var(--text); line-height: 1.25; }
+.pop-bco {
+  font-size: 10px; text-transform: uppercase;
+  letter-spacing: .07em; font-weight: 750; margin-top: 3px;
+}
+.pop-badges { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 10px; }
+.pop-badges .pb {
+  background: var(--surface-2); color: var(--text-2);
+  padding: 3px 8px; border-radius: 999px;
+  font-size: 10.5px; font-weight: 650; white-space: nowrap;
+}
+.pop-links { display: flex; gap: 7px; margin-top: 12px; align-items: center; }
+/* nowrap en AMBOS: sin esto el botón principal se partía en tres líneas y
+   quedaba como una pelota, porque el de ruta se llevaba todo el ancho. */
+.pop-links a {
+  text-decoration: none; font-weight: 700; font-size: 12px;
+  white-space: nowrap; text-align: center;
+}
+.pop-links .pl-primario { color: #fff; padding: 8px 14px; border-radius: 999px; }
+.pop-links .pl-ruta {
+  color: var(--text-2); padding: 8px 11px;
+  border: 1px solid var(--border-fuerte); border-radius: 999px;
+}
+.pop-links .pl-ruta:hover { background: var(--surface-2); }
 
 /* ---------- Estado vacío ---------- */
 .vacio {
