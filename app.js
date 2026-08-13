@@ -219,9 +219,27 @@ function crearMapa() {
     attribution: TILES_ATTR, maxZoom: 19,
   }).addTo(MAPA);
 
+  CAPA = crearCapaMarcadores();
+
+  // Si el visitante cambia el tema del sistema con el mapa abierto.
+  matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => {
+    if (TILELAYER) TILELAYER.setUrl(TILES[temaOscuro() ? "oscuro" : "claro"]);
+  });
+}
+
+function crearCapaMarcadores() {
+  // Degradar si el plugin no está: al desplegar, un visitante puede quedar con
+  // el index.html viejo en caché (sin el <script> del plugin) y el app.js
+  // nuevo. Sin esto, esa mezcla lanza "L.markerClusterGroup is not a function"
+  // y el mapa no se dibuja. Sin agrupar es peor, pero roto es mucho peor.
+  if (typeof L.markerClusterGroup !== "function") {
+    console.warn("markercluster no disponible: mapa sin agrupación.");
+    return L.layerGroup().addTo(MAPA);
+  }
+
   // Sin agrupar, media docena de pines quedaban encimados e ilegibles en
   // Providencia/Las Condes. Al acercar, el grupo se abre solo.
-  CAPA = L.markerClusterGroup({
+  return L.markerClusterGroup({
     showCoverageOnHover: false,
     maxClusterRadius: 46,
     spiderfyDistanceMultiplier: 1.4,
@@ -236,11 +254,6 @@ function crearMapa() {
       });
     },
   }).addTo(MAPA);
-
-  // Si el visitante cambia el tema del sistema con el mapa abierto.
-  matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => {
-    if (TILELAYER) TILELAYER.setUrl(TILES[temaOscuro() ? "oscuro" : "claro"]);
-  });
 }
 
 function renderMapa(items) {
@@ -261,7 +274,9 @@ function renderMapa(items) {
       .bindPopup(popup(d, bco), { closeButton: true, maxWidth: 260 }));
     bounds.push([d.lat, d.lng]);
   }
-  CAPA.addLayers(marcadores);
+  // addLayers es del plugin; L.layerGroup (el respaldo) solo tiene addLayer.
+  if (CAPA.addLayers) CAPA.addLayers(marcadores);
+  else marcadores.forEach(m => CAPA.addLayer(m));
   if (USERMARK) USERMARK.addTo(MAPA);
 
   const total = items.length, info = document.getElementById("mapa-info");
