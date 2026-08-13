@@ -246,6 +246,17 @@ body {
   box-shadow: 0 0 0 3.5px var(--acento-suave);
 }
 
+/* Desglose por local dentro de la tarjeta */
+.locales {
+  margin-top: 9px;
+  padding-top: 9px;
+  border-top: 1px dashed var(--border-fuerte);
+  font-size: 11.5px;
+  color: var(--text-2);
+  line-height: 1.45;
+}
+.locales b { color: var(--tinta); font-weight: 750; }
+
 .vista-toggle {
   display: flex;
   flex-shrink: 0;
@@ -647,6 +658,12 @@ h2 {
   padding: 3px 8px; border-radius: 999px;
   font-size: 10.5px; font-weight: 650; white-space: nowrap;
 }
+.pop-locales {
+  margin-top: 9px; padding-top: 8px;
+  border-top: 1px dashed var(--border-fuerte);
+  font-size: 11.5px; color: var(--text-2); line-height: 1.4;
+}
+.pop-locales b { font-weight: 750; }
 .pop-links { display: flex; gap: 7px; margin-top: 12px; align-items: center; }
 /* nowrap en AMBOS: sin esto el botón principal se partía en tres líneas y
    quedaba como una pelota, porque el de ruta se llevaba todo el ancho. */

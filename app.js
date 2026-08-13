@@ -34,6 +34,19 @@ const state = {
   dia: diaSantiago(), q: "", bancos: new Set(BANCOS.map(b => b.nombre)),
   data: [], vista: "lista", user: null,
 };
+
+// Locales del descuento donde vale el día elegido. [] si el banco no publica
+// días por local (el caso normal: un solo local, y `dias` ya es específico).
+function localesDelDia(d, dia) {
+  if (!d.locales || !d.locales.length) return [];
+  return d.locales.filter(l => l.d.includes(dia));
+}
+// True si el beneficio NO vale hoy en todos sus locales: hay que decir en
+// cuáles sí, porque "todos los días" mandaría a la persona al local errado.
+function variaPorLocal(d, dia) {
+  if (!d.locales || !d.locales.length) return false;
+  return localesDelDia(d, dia).length < d.locales.length;
+}
 let MAPA = null, CAPA = null, USERMARK = null; // Leaflet lazy
 
 function diaSantiago() {
@@ -294,9 +307,13 @@ function renderMapa(items) {
 }
 
 function popup(d, bco) {
+  const locs = localesDelDia(d, state.dia);
   const badges = [dias_label(d.dias), fmtTope(d), d.condicion]
     .filter(Boolean)
     .map(t => `<span class="pb">${esc(t)}</span>`).join("");
+  const porLocal = locs.length && variaPorLocal(d, state.dia)
+    ? `<div class="pop-locales"><b>Hoy solo en:</b> ${locs.map(l => esc(l.n)).join(" · ")}</div>`
+    : "";
   const ruta = `https://www.google.com/maps/dir/?api=1&destination=${d.lat},${d.lng}`;
   const ver = d.url
     ? `<a class="pl-primario" style="background:${bco.pin}" href="${esc(d.url)}" target="_blank" rel="noopener">Ver oferta →</a>`
@@ -310,6 +327,7 @@ function popup(d, bco) {
       </div>
     </div>
     ${badges ? `<div class="pop-badges">${badges}</div>` : ""}
+    ${porLocal}
     <div class="pop-links">${ver}<a class="pl-ruta" href="${ruta}" target="_blank" rel="noopener">🧭 Cómo llegar</a></div>
   </div>`;
 }
@@ -347,6 +365,7 @@ function card(d, bco) {
   const ultimo = d.vigencia && d.vigencia === hoy;
   const tope = fmtTope(d);
   const link = esc(d.url || bco.url);
+  const locs = localesDelDia(d, state.dia);
   return `<div class="cardo" style="--bcolor:${bco.color}">
     <div class="fila">
       <a class="nom" href="${link}" target="_blank" rel="noopener">${EMOJI[d.subcat] || "🍴"} ${esc(d.comercio)}</a>
@@ -358,6 +377,9 @@ function card(d, bco) {
       ${tope ? `<span class="badge">${esc(tope)}</span>` : ""}
       ${d.condicion ? `<span class="badge cond">${esc(d.condicion)}</span>` : ""}
     </div>
+    ${locs.length && variaPorLocal(d, state.dia)
+      ? `<div class="locales"><b>Hoy solo en:</b> ${locs.map(l => esc(l.n)).join(" · ")}</div>`
+      : ""}
   </div>`;
 }
 
