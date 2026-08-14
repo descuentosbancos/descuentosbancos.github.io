@@ -256,6 +256,7 @@ body {
   line-height: 1.45;
 }
 .locales b { color: var(--tinta); font-weight: 750; }
+.loc-comuna { color: var(--muted); font-weight: 600; }
 
 .vista-toggle {
   display: flex;

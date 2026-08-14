@@ -47,6 +47,11 @@ function variaPorLocal(d, dia) {
   if (!d.locales || !d.locales.length) return false;
   return localesDelDia(d, dia).length < d.locales.length;
 }
+// "Mallplaza Egaña (La Reina)". La comuna solo va si consta en la tabla
+// curada del repo de datos: no se adivina.
+function nombreLocal(l) {
+  return esc(l.n) + (l.c ? ` <span class="loc-comuna">(${esc(l.c)})</span>` : "");
+}
 let MAPA = null, CAPA = null, USERMARK = null; // Leaflet lazy
 
 function diaSantiago() {
@@ -312,7 +317,7 @@ function popup(d, bco) {
     .filter(Boolean)
     .map(t => `<span class="pb">${esc(t)}</span>`).join("");
   const porLocal = locs.length && variaPorLocal(d, state.dia)
-    ? `<div class="pop-locales"><b>Hoy solo en:</b> ${locs.map(l => esc(l.n)).join(" · ")}</div>`
+    ? `<div class="pop-locales"><b>Hoy solo en:</b> ${locs.map(nombreLocal).join(" · ")}</div>`
     : "";
   const ruta = `https://www.google.com/maps/dir/?api=1&destination=${d.lat},${d.lng}`;
   const ver = d.url
@@ -378,7 +383,7 @@ function card(d, bco) {
       ${d.condicion ? `<span class="badge cond">${esc(d.condicion)}</span>` : ""}
     </div>
     ${locs.length && variaPorLocal(d, state.dia)
-      ? `<div class="locales"><b>Hoy solo en:</b> ${locs.map(l => esc(l.n)).join(" · ")}</div>`
+      ? `<div class="locales"><b>Hoy solo en:</b> ${locs.map(nombreLocal).join(" · ")}</div>`
       : ""}
   </div>`;
 }
