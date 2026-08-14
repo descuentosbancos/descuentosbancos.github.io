@@ -32,7 +32,7 @@ const MAX_POR_BANCO = 24; // la web tiene más espacio que el correo
 
 const state = {
   dia: diaSantiago(), q: "", bancos: new Set(BANCOS.map(b => b.nombre)),
-  data: [], vista: "lista", user: null,
+  data: [], vista: "lista", user: null, comuna: "",
 };
 
 // Locales del descuento donde vale el día elegido. [] si el banco no publica
@@ -90,6 +90,9 @@ function visibles() {
     d.dias.includes(state.dia) &&
     (!d.vigencia || d.vigencia >= hoy) &&
     state.bancos.has(d.banco) &&
+    // Un descuento puede valer en VARIAS comunas (una cadena): basta con que
+    // la elegida esté entre las suyas.
+    (!state.comuna || (d.comunas || []).includes(state.comuna)) &&
     (!q || d.comercio.toLowerCase().includes(q))
   );
 }
@@ -119,6 +122,33 @@ function render() {
       `${DIAS[i - 1]} <span class="n">${n}</span>`;
     b.onclick = () => { state.dia = i; render(); };
     tabs.appendChild(b);
+  }
+
+  // Comunas del día elegido, con su conteo. Se reconstruye en cada render
+  // para no ofrecer comunas sin ofertas hoy.
+  const sel = document.getElementById("comuna");
+  const delDia = state.data.filter(
+    d => d.dias.includes(state.dia) && (!d.vigencia || d.vigencia >= hoy));
+  const cuenta = {};
+  let sinComuna = 0;
+  for (const d of delDia) {
+    const cs = d.comunas || [];
+    if (!cs.length) sinComuna++;
+    for (const c of cs) cuenta[c] = (cuenta[c] || 0) + 1;
+  }
+  const comunas = Object.keys(cuenta).sort((a, b) => cuenta[b] - cuenta[a]);
+  if (state.comuna && !cuenta[state.comuna]) state.comuna = "";  // ya no aplica
+  sel.innerHTML =
+    `<option value="">📍 Todas las comunas (${delDia.length})</option>` +
+    comunas.map(c =>
+      `<option value="${esc(c)}"${c === state.comuna ? " selected" : ""}>` +
+      `${esc(c)} (${cuenta[c]})</option>`).join("");
+  // No se puede afirmar la comuna de todos: se DICE, en vez de esconderlos.
+  const aviso = document.getElementById("comuna-aviso");
+  aviso.hidden = !(state.comuna && sinComuna);
+  if (!aviso.hidden) {
+    aviso.textContent = `${sinComuna} oferta(s) sin comuna conocida no se ` +
+      `muestran con este filtro.`;
   }
 
   // Chips de banco
@@ -379,6 +409,10 @@ function card(d, bco) {
     <div class="meta">
       <span class="badge">📅 ${dias_label(d.dias)}</span>
       ${ultimo ? '<span class="badge ultimo">⏳ último día</span>' : ""}
+      ${(d.comunas || []).length
+        ? `<span class="badge">📍 ${d.comunas.slice(0, 2).map(esc).join(" · ")}` +
+          `${d.comunas.length > 2 ? ` +${d.comunas.length - 2}` : ""}</span>`
+        : ""}
       ${tope ? `<span class="badge">${esc(tope)}</span>` : ""}
       ${d.condicion ? `<span class="badge cond">${esc(d.condicion)}</span>` : ""}
     </div>
@@ -398,6 +432,9 @@ async function init() {
   document.getElementById("cta-form-2").href = FORM_URL;
   document.getElementById("buscar").addEventListener("input", e => {
     state.q = e.target.value; render();
+  });
+  document.getElementById("comuna").addEventListener("change", e => {
+    state.comuna = e.target.value; render();
   });
   document.getElementById("ver-lista").onclick = () => { state.vista = "lista"; render(); };
   document.getElementById("ver-mapa").onclick = () => { state.vista = "mapa"; render(); };

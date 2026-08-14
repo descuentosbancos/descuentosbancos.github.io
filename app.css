@@ -246,6 +246,26 @@ body {
   box-shadow: 0 0 0 3.5px var(--acento-suave);
 }
 
+/* Selector de comuna */
+.selector {
+  flex-shrink: 0; max-width: 210px;
+  padding: 11px 12px; font-size: 13.5px; font-family: inherit; font-weight: 650;
+  border: 1px solid var(--border); border-radius: var(--r-md);
+  background: var(--surface); color: var(--text); cursor: pointer;
+  transition: border-color .15s ease, box-shadow .15s ease;
+}
+.selector:hover { border-color: var(--border-fuerte); }
+.selector:focus {
+  outline: none; border-color: var(--acento);
+  box-shadow: 0 0 0 3.5px var(--acento-suave);
+}
+/* Lo que el filtro deja fuera se dice, no se esconde. */
+.aviso {
+  margin: 0; font-size: 11.5px; color: var(--muted);
+  background: var(--surface-2); border-radius: var(--r-sm);
+  padding: 6px 10px;
+}
+
 /* Desglose por local dentro de la tarjeta */
 .locales {
   margin-top: 9px;
