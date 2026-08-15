@@ -47,6 +47,17 @@ function variaPorLocal(d, dia) {
   if (!d.locales || !d.locales.length) return false;
   return localesDelDia(d, dia).length < d.locales.length;
 }
+// Comunas donde el descuento vale ESE día. Si el banco publica días por
+// local, las comunas dependen del día: Fuente Suiza vale en La Reina y
+// Cerrillos de lunes a miércoles, pero el viernes SOLO en Las Condes (Open
+// Kennedy desde las 19). Usar la lista completa lo mostraba al filtrar por
+// una comuna donde ese día no aplica.
+function comunasDelDia(d, dia) {
+  if (!d.locales || !d.locales.length) return d.comunas || [];
+  const cs = localesDelDia(d, dia).map(l => l.c).filter(Boolean);
+  return [...new Set(cs)].sort();
+}
+
 // "Mallplaza Egaña (La Reina)". La comuna solo va si consta en la tabla
 // curada del repo de datos: no se adivina.
 function nombreLocal(l) {
@@ -92,7 +103,7 @@ function visibles() {
     state.bancos.has(d.banco) &&
     // Un descuento puede valer en VARIAS comunas (una cadena): basta con que
     // la elegida esté entre las suyas.
-    (!state.comuna || (d.comunas || []).includes(state.comuna)) &&
+    (!state.comuna || comunasDelDia(d, state.dia).includes(state.comuna)) &&
     (!q || d.comercio.toLowerCase().includes(q))
   );
 }
@@ -132,7 +143,7 @@ function render() {
   const cuenta = {};
   let sinComuna = 0;
   for (const d of delDia) {
-    const cs = d.comunas || [];
+    const cs = comunasDelDia(d, state.dia);
     if (!cs.length) sinComuna++;
     for (const c of cs) cuenta[c] = (cuenta[c] || 0) + 1;
   }
@@ -409,10 +420,13 @@ function card(d, bco) {
     <div class="meta">
       <span class="badge">📅 ${dias_label(d.dias)}</span>
       ${ultimo ? '<span class="badge ultimo">⏳ último día</span>' : ""}
-      ${(d.comunas || []).length
-        ? `<span class="badge">📍 ${d.comunas.slice(0, 2).map(esc).join(" · ")}` +
-          `${d.comunas.length > 2 ? ` +${d.comunas.length - 2}` : ""}</span>`
-        : ""}
+      ${(() => {
+        const cs = comunasDelDia(d, state.dia);
+        return cs.length
+          ? `<span class="badge">📍 ${cs.slice(0, 2).map(esc).join(" · ")}` +
+            `${cs.length > 2 ? ` +${cs.length - 2}` : ""}</span>`
+          : "";
+      })()}
       ${tope ? `<span class="badge">${esc(tope)}</span>` : ""}
       ${d.condicion ? `<span class="badge cond">${esc(d.condicion)}</span>` : ""}
     </div>
