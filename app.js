@@ -354,7 +354,10 @@ function renderMapa(items) {
 
 function popup(d, bco) {
   const locs = localesDelDia(d, state.dia);
-  const badges = [dias_label(d.dias), fmtTope(d), d.condicion]
+  // dias_confirmados=false: la ficha no dijo ningún día, "dias" es un
+  // supuesto -no se muestra como si fuera un hecho (mismo criterio del correo).
+  const badges = [d.dias_confirmados === false ? null : dias_label(d.dias),
+                  fmtTope(d), d.condicion]
     .filter(Boolean)
     .map(t => `<span class="pb">${esc(t)}</span>`).join("");
   const porLocal = locs.length && variaPorLocal(d, state.dia)
@@ -418,7 +421,8 @@ function card(d, bco) {
       <div class="pct"><span class="hasta">hasta</span><span class="num">${d.pct}%</span></div>
     </div>
     <div class="meta">
-      <span class="badge">📅 ${dias_label(d.dias)}</span>
+      ${d.dias_confirmados === false ? "" :
+        `<span class="badge">📅 ${dias_label(d.dias)}</span>`}
       ${ultimo ? '<span class="badge ultimo">⏳ último día</span>' : ""}
       ${(() => {
         const cs = comunasDelDia(d, state.dia);
