@@ -13,15 +13,37 @@ const BANCOS = [
   { nombre: "BICE",           color: "#004B8D", pin: "#004B8D", url: "https://www.bice.cl/personas/beneficios" },
 ];
 
-// Base del mapa: CARTO en vez de OpenStreetMap crudo. El OSM estándar mete
-// escudos de ruta, relieve y carreteras de colores que tapaban los pines; estas
-// están diseñadas como FONDO, y hay variante oscura para el tema oscuro.
+// Base del mapa: Esri Canvas (gris neutro) en vez de OpenStreetMap crudo. El
+// OSM estándar mete escudos de ruta, relieve y carreteras de colores que
+// tapaban los pines; este fondo está diseñado para eso, con variante oscura.
+//
+// Antes era CARTO (basemaps.cartocdn.com), pero dejó de servir tiles gratis
+// sin cuenta: el tile que llegaba traía literalmente el texto "API KEY
+// REQUIRED" incrustado en la imagen (sep-2026). Esri Canvas es el
+// reemplazo directo -mismo estilo visual, sin cuenta ni clave- pero viene en
+// DOS capas que hay que superponer: "Base" (el relleno/calles) y
+// "Reference" (las etiquetas, PNG transparente), a diferencia de CARTO que
+// las traía juntas en un solo tile.
+//
+// OJO con el orden de la URL: Esri usa {z}/{y}/{x}, NO {z}/{x}/{y} como la
+// mayoría de los servicios XYZ (CARTO, OSM). Cambiarlo por error deja el
+// mapa mostrando el tile equivocado en cada posición.
+//
+// maxNativeZoom en 15: pasado ese nivel Esri devuelve un tile con el texto
+// "Map data not yet available" para esta región en vez de fallar limpio.
+// Leaflet resuelve el acercamiento extra escalando el último tile real -se
+// ve borroso, pero nunca ese texto.
 const TILES = {
-  claro: "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",
-  oscuro: "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",
+  claro: {
+    base: "https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}",
+    ref: "https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Reference/MapServer/tile/{z}/{y}/{x}",
+  },
+  oscuro: {
+    base: "https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}",
+    ref: "https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Reference/MapServer/tile/{z}/{y}/{x}",
+  },
 };
-const TILES_ATTR = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> ' +
-                   '&copy; <a href="https://carto.com/attributions">CARTO</a>';
+const TILES_ATTR = '&copy; <a href="https://www.esri.com">Esri</a>';
 const temaOscuro = () => matchMedia("(prefers-color-scheme: dark)").matches;
 const FORM_URL = "https://docs.google.com/forms/d/e/1FAIpQLScfOH3mzOrMN5hBaX74k2IFxHrfxanplOuyTMGKnz-a6hTYDA/viewform";
 const DIAS = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
@@ -268,21 +290,26 @@ function distancia(a, b) { // metros (haversine)
 }
 function fmtDist(m) { return m < 1000 ? `${Math.round(m / 10) * 10} m` : `${(m / 1000).toFixed(1)} km`; }
 
-let TILELAYER = null, FIRMA_VISTA = null;
+let TILELAYER = null, TILELAYER_REF = null, FIRMA_VISTA = null;
 
 function crearMapa() {
   MAPA = L.map("mapa", { scrollWheelZoom: true, zoomControl: false })
     .setView([-33.45, -70.66], 12);
   L.control.zoom({ position: "bottomright" }).addTo(MAPA);
-  TILELAYER = L.tileLayer(TILES[temaOscuro() ? "oscuro" : "claro"], {
-    attribution: TILES_ATTR, maxZoom: 19,
-  }).addTo(MAPA);
+  const t = TILES[temaOscuro() ? "oscuro" : "claro"];
+  const opts = { attribution: TILES_ATTR, maxZoom: 18, maxNativeZoom: 15 };
+  // Dos capas superpuestas: el relleno/calles (Base) abajo, las etiquetas
+  // de calle/comuna (Reference, PNG transparente) arriba.
+  TILELAYER = L.tileLayer(t.base, opts).addTo(MAPA);
+  TILELAYER_REF = L.tileLayer(t.ref, opts).addTo(MAPA);
 
   CAPA = crearCapaMarcadores();
 
   // Si el visitante cambia el tema del sistema con el mapa abierto.
   matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => {
-    if (TILELAYER) TILELAYER.setUrl(TILES[temaOscuro() ? "oscuro" : "claro"]);
+    const t = TILES[temaOscuro() ? "oscuro" : "claro"];
+    if (TILELAYER) TILELAYER.setUrl(t.base);
+    if (TILELAYER_REF) TILELAYER_REF.setUrl(t.ref);
   });
 }
 
