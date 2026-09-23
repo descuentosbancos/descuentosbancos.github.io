@@ -610,6 +610,18 @@ async function init() {
   document.getElementById("cta-form").href = FORM_URL;
   document.getElementById("cta-form-2").href = FORM_URL;
   document.getElementById("cta-top").href = FORM_URL;
+  // Compartir: el menú nativo del teléfono (WhatsApp, Instagram...) y, si no
+  // existe (computador), WhatsApp Web. Comparte la URL con los filtros
+  // puestos, así llega "Santander el viernes" y no la portada.
+  document.getElementById("compartir").onclick = async () => {
+    const url = location.href;
+    const texto = "Mira dónde comer con descuento hoy en Santiago 🍽️";
+    if (navigator.share) {
+      try { await navigator.share({ title: document.title, text: texto, url }); } catch (e) { /* cancelado */ }
+    } else {
+      window.open("https://wa.me/?text=" + encodeURIComponent(texto + " " + url), "_blank", "noopener");
+    }
+  };
   const buscar = document.getElementById("buscar");
   buscar.addEventListener("input", e => {
     state.q = e.target.value; render();

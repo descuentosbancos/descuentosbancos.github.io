@@ -213,6 +213,16 @@ body {
 .btn-cta:hover { transform: translateY(-2px); filter: brightness(1.06); }
 .btn-cta:hover::after { transform: translateX(3px); }
 .btn-cta:active { transform: translateY(0); }
+.btn-sec {
+  display: inline-flex; align-items: center; gap: 8px;
+  font: inherit; font-size: 15px; font-weight: 750; color: var(--text);
+  background: var(--surface); border: 1px solid var(--border-fuerte);
+  padding: 13px 20px; border-radius: 999px; cursor: pointer;
+  transition: border-color .15s ease, transform .15s ease;
+}
+.btn-sec:hover { border-color: var(--text); transform: translateY(-2px); }
+.btn-sec .ico { width: 17px; height: 17px; }
+.hero-nota { flex-basis: 100%; }
 @media (prefers-color-scheme: dark) { .btn-cta { color: #06200f; } }
 
 /* Tarjeta de cifras del hero: el número del día + reparto por banco. */
