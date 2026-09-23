@@ -52,9 +52,27 @@ const DIA_LARGO = ["lunes", "martes", "miércoles", "jueves", "viernes",
 const EMOJI = { delivery: "🍕", restaurante: "🍽️", cafe: "☕", supermercado: "🛒" };
 const MAX_POR_BANCO = 24; // la web tiene más espacio que el correo
 
+// Casi todo es restaurante: repetir 🍽️ en cada tarjeta era ruido. El emoji
+// solo aparece cuando dice algo (café, delivery, súper).
+function sub(d) {
+  return d.subcat && d.subcat !== "restaurante" && EMOJI[d.subcat]
+    ? `<span class="sub" aria-hidden="true">${EMOJI[d.subcat]}</span>` : "";
+}
+
+// Íconos de trazo (mismo lenguaje que los de la barra en index.html).
+const ICO = {
+  dia: '<rect x="3.5" y="5" width="17" height="15.5" rx="2.5"/><path d="M3.5 10h17M8 3v4M16 3v4"/>',
+  lugar: '<path d="M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/>',
+  tope: '<circle cx="12" cy="12" r="9"/><path d="M15 9.3c-.5-.9-1.6-1.5-3-1.5-1.7 0-2.9.8-2.9 2.1s1.2 1.8 2.9 2.1 2.9.9 2.9 2.2-1.2 2.1-2.9 2.1c-1.4 0-2.5-.6-3-1.5M12 6v1.8M12 16.3V18"/>',
+  tarjeta: '<rect x="2.5" y="5" width="19" height="14" rx="2.5"/><path d="M2.5 10h19M6.5 15h4"/>',
+  reloj: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.2 2"/>',
+};
+const ico = k => `<svg class="ico" viewBox="0 0 24 24" aria-hidden="true">${ICO[k]}</svg>`;
+
 const state = {
   dia: diaSantiago(), q: "", bancos: new Set(BANCOS.map(b => b.nombre)),
   data: [], vista: "lista", user: null, comuna: "",
+  expandidos: new Set(),  // bancos con "ver todas" abierto
 };
 
 // Locales del descuento donde vale el día elegido. [] si el banco no publica
@@ -116,13 +134,15 @@ function dias_label(arr) {
   return ds.map(d => DIAS[d - 1]).join(", ");
 }
 
-function visibles() {
+// `todosLosBancos`: mismo filtro pero sin el de banco, para contar en los
+// chips cuántas ofertas tendría cada banco con el resto de filtros puestos.
+function visibles(todosLosBancos = false) {
   const hoy = hoyISOSantiago();
   const q = state.q.trim().toLowerCase();
   return state.data.filter(d =>
     d.dias.includes(state.dia) &&
     (!d.vigencia || d.vigencia >= hoy) &&
-    state.bancos.has(d.banco) &&
+    (todosLosBancos || state.bancos.has(d.banco)) &&
     // Un descuento puede valer en VARIAS comunas (una cadena): basta con que
     // la elegida esté entre las suyas.
     (!state.comuna || comunasDelDia(d, state.dia).includes(state.comuna)) &&
@@ -138,9 +158,40 @@ function render() {
   const totalDia = state.data.filter(d =>
     d.dias.includes(state.dia) && (!d.vigencia || d.vigencia >= hoy)).length;
   const esHoy = state.dia === diaSantiago();
-  const cuando = esHoy ? "activas hoy" : `para el ${DIA_LARGO[state.dia - 1]}`;
-  document.getElementById("hero-sub").innerHTML =
-    `<b>${totalDia}</b> ofertas ${cuando} en Santiago`;
+  const diaTxt = esHoy ? "hoy" : `el ${DIA_LARGO[state.dia - 1]}`;
+  document.getElementById("hero-cuando").textContent = diaTxt;
+  document.getElementById("dest-cuando").textContent = diaTxt;
+  document.getElementById("stat-num").textContent = totalDia;
+  document.getElementById("stat-lbl").textContent = esHoy
+    ? `ofertas activas hoy, ${DIA_LARGO[state.dia - 1]}, en Santiago`
+    : `ofertas para el ${DIA_LARGO[state.dia - 1]} en Santiago`;
+
+  // Reparto del día por banco. Tocar una barra deja solo ese banco (igual
+  // que su chip desde "todos") y baja al listado.
+  const porBanco = BANCOS.map(bco => ({
+    bco,
+    n: state.data.filter(d => d.banco === bco.nombre && d.dias.includes(state.dia) &&
+      (!d.vigencia || d.vigencia >= hoy)).length,
+  }));
+  const maxN = Math.max(1, ...porBanco.map(x => x.n));
+  const barras = document.getElementById("stat-barras");
+  barras.innerHTML = "";
+  for (const { bco, n } of porBanco) {
+    const b = document.createElement("button");
+    b.className = "barra";
+    b.style.setProperty("--bcolor", bco.color);
+    b.setAttribute("aria-label", `${bco.nombre}: ${n} ofertas. Ver solo ${bco.nombre}`);
+    b.innerHTML = `<span>${esc(bco.nombre)}</span>` +
+      `<span class="pista"><i style="width:${(n / maxN * 100).toFixed(1)}%"></i></span>` +
+      `<span class="n">${n}</span>`;
+    b.onclick = () => {
+      state.bancos = new Set([bco.nombre]);
+      state.vista = "lista";
+      render();
+      document.querySelector(".toolbar").scrollIntoView({ behavior: "smooth" });
+    };
+    barras.appendChild(b);
+  }
 
   // Tabs
   const tabs = document.getElementById("tabs");
@@ -172,7 +223,7 @@ function render() {
   const comunas = Object.keys(cuenta).sort((a, b) => cuenta[b] - cuenta[a]);
   if (state.comuna && !cuenta[state.comuna]) state.comuna = "";  // ya no aplica
   sel.innerHTML =
-    `<option value="">📍 Todas las comunas (${delDia.length})</option>` +
+    `<option value="">Todas las comunas (${delDia.length})</option>` +
     comunas.map(c =>
       `<option value="${esc(c)}"${c === state.comuna ? " selected" : ""}>` +
       `${esc(c)} (${cuenta[c]})</option>`).join("");
@@ -184,15 +235,17 @@ function render() {
       `muestran con este filtro.`;
   }
 
-  // Chips de banco
+  // Chips de banco, con cuántas ofertas tendría cada uno con los demás filtros.
   const chips = document.getElementById("chips");
   chips.innerHTML = "";
+  const sinFiltroBanco = visibles(true);
   for (const bco of BANCOS) {
     const c = document.createElement("button");
     const on = state.bancos.has(bco.nombre);
-    c.className = "chip" + (on ? " activo" : " apagado");
+    const nChip = sinFiltroBanco.filter(d => d.banco === bco.nombre).length;
+    c.className = "chip" + (on ? " activo" : " apagado") + (nChip ? "" : " cero");
     c.style.setProperty("--chipcolor", bco.color);
-    c.textContent = bco.nombre;
+    c.innerHTML = `${esc(bco.nombre)} <span class="n">${nChip}</span>`;
     c.setAttribute("aria-pressed", on ? "true" : "false");
     c.onclick = () => {
       const todos = state.bancos.size === BANCOS.length;
@@ -220,17 +273,15 @@ function render() {
   const top = Object.values(mejorPorBanco).sort((a, b) => b.pct - a.pct).slice(0, 3);
   const dsec = document.getElementById("destacados-sec");
   dsec.hidden = top.length < 2;
-  document.getElementById("destacados").innerHTML = top.map(d => {
+  document.getElementById("destacados").innerHTML = top.map((d, i) => {
     const bco = BANCOS.find(b => b.nombre === d.banco);
-    return `<a class="dest" style="background:${bco.color}" href="${esc(d.url || bco.url)}" target="_blank" rel="noopener">
-      <div class="dest-pct">
-        <span class="hasta">hasta</span>
-        <div class="pct">${d.pct}%</div>
-      </div>
+    return `<a class="dest" style="--bcolor:${bco.color}" href="${esc(d.url || bco.url)}" target="_blank" rel="noopener">
+      <div class="dest-pct"><small>hasta</small><b>${d.pct}</b><span>%</span></div>
       <div class="dest-txt">
-        <div class="nom">${EMOJI[d.subcat] || "🍴"} ${esc(d.comercio)}</div>
+        <div class="nom">${sub(d)}${esc(d.comercio)}</div>
         <div class="bco">${esc(d.banco)}</div>
       </div>
+      <span class="rank" aria-hidden="true">${i + 1}</span>
     </a>`;
   }).join("");
 
@@ -239,35 +290,55 @@ function render() {
   res.innerHTML = "";
   let alguno = false;
   for (const bco of BANCOS) {
-    const del = items.filter(d => d.banco === bco.nombre)
-      .sort((a, b) => b.pct - a.pct).slice(0, MAX_POR_BANCO);
-    if (!del.length) continue;
+    const todas = items.filter(d => d.banco === bco.nombre).sort((a, b) => b.pct - a.pct);
+    if (!todas.length) continue;
     alguno = true;
-    const total = items.filter(d => d.banco === bco.nombre).length;
+    const total = todas.length;
+    const abierto = state.expandidos.has(bco.nombre);
+    const del = abierto ? todas : todas.slice(0, MAX_POR_BANCO);
     const sec = document.createElement("section");
     sec.className = "banco-sec";
+    sec.id = "banco-" + bco.nombre.toLowerCase().replace(/[^a-z]+/g, "-");
     sec.style.setProperty("--bcolor", bco.color);
     sec.innerHTML = `
       <div class="banco-head">
-        <span class="punto"></span>
-        <span class="nom">${esc(bco.nombre)}</span>
+        <h2 class="nom">${esc(bco.nombre)}</h2>
         <span class="cnt">${total > del.length ? `${del.length} de ${total}` : del.length}
           ${total === 1 ? "oferta" : "ofertas"}</span>
         <a class="ver-mas" href="${esc(bco.url)}" target="_blank" rel="noopener">Ver en el banco →</a>
       </div>
       <div class="grid">
         ${del.map(d => card(d, bco)).join("")}
-      </div>`;
+      </div>
+      ${total > MAX_POR_BANCO
+        ? `<button class="mas">${abierto ? "Ver menos" : `Ver las ${total} de ${esc(bco.nombre)}`}</button>`
+        : ""}`;
+    const mas = sec.querySelector(".mas");
+    if (mas) mas.onclick = () => {
+      if (abierto) state.expandidos.delete(bco.nombre);
+      else state.expandidos.add(bco.nombre);
+      render();
+      if (abierto) document.getElementById(sec.id).scrollIntoView({ block: "start" });
+    };
     res.appendChild(sec);
   }
   if (!alguno) {
-    const filtrando = state.q || state.bancos.size < BANCOS.length;
+    const filtrando = state.q || state.comuna || state.bancos.size < BANCOS.length;
     res.innerHTML = `<div class="vacio">
-      <span class="emoji">🍽️</span>
       ${filtrando
-        ? `Nada con esos filtros. Prueba <b>otro día</b>, borra la búsqueda o vuelve a activar todos los bancos.`
-        : `No hay ofertas para el <b>${DIA_LARGO[state.dia - 1]}</b>. Prueba otro día.`}
+        ? `<p class="vacio-tit">Nada con esos filtros</p>
+           <p>Prueba <b>otro día</b>, otra comuna, borra la búsqueda o vuelve a activar todos los bancos.</p>
+           <button class="mas" id="limpiar">Limpiar filtros</button>`
+        : `<p class="vacio-tit">Sin ofertas el ${DIA_LARGO[state.dia - 1]}</p>
+           <p>Prueba otro día de la semana.</p>`}
     </div>`;
+    const limpiar = document.getElementById("limpiar");
+    if (limpiar) limpiar.onclick = () => {
+      state.q = ""; state.comuna = "";
+      state.bancos = new Set(BANCOS.map(b => b.nombre));
+      document.getElementById("buscar").value = "";
+      render();
+    };
   }
 
   // Alternar vista lista/mapa.
@@ -276,8 +347,11 @@ function render() {
   document.getElementById("destacados-sec").hidden = enMapa || top.length < 2;
   document.getElementById("resultado").hidden = enMapa;
   document.getElementById("como-funciona").hidden = enMapa;
-  document.getElementById("ver-lista").classList.toggle("activo", !enMapa);
-  document.getElementById("ver-mapa").classList.toggle("activo", enMapa);
+  for (const [id, on] of [["ver-lista", !enMapa], ["ver-mapa", enMapa]]) {
+    const b = document.getElementById(id);
+    b.classList.toggle("activo", on);
+    b.setAttribute("aria-pressed", on ? "true" : "false");
+  }
   if (enMapa) renderMapa(items);
 }
 
@@ -368,7 +442,7 @@ function renderMapa(items) {
   const total = items.length, info = document.getElementById("mapa-info");
   if (state.user) marcarCercano(conGeo);
   else info.innerHTML = `<b>${conGeo.length}</b> de ${total} con ubicación · ` +
-    `toca 📍 para ver el más cercano`;
+    `usa tu ubicación para ver el más cercano`;
 
   // Reencuadrar SOLO si cambió el conjunto de locales: antes se reencuadraba
   // en cada render y el mapa saltaba con cada tecla del buscador.
@@ -398,7 +472,7 @@ function popup(d, bco) {
     <div class="pop-top">
       <div class="pop-pct" style="color:${bco.pin}">${d.pct}<i>%</i></div>
       <div>
-        <div class="pop-nom">${EMOJI[d.subcat] || "🍴"} ${esc(d.comercio)}</div>
+        <div class="pop-nom">${sub(d)}${esc(d.comercio)}</div>
         <div class="pop-bco" style="color:${bco.pin}">${esc(d.banco)}</div>
       </div>
     </div>
@@ -442,29 +516,27 @@ function card(d, bco) {
   const tope = fmtTope(d);
   const link = esc(d.url || bco.url);
   const locs = localesDelDia(d, state.dia);
-  return `<div class="cardo" style="--bcolor:${bco.color}">
+  const cs = comunasDelDia(d, state.dia);
+  return `<article class="cardo" style="--bcolor:${bco.color}">
     <div class="fila">
-      <a class="nom" href="${link}" target="_blank" rel="noopener">${EMOJI[d.subcat] || "🍴"} ${esc(d.comercio)}</a>
-      <div class="pct"><span class="hasta">hasta</span><span class="num">${d.pct}%</span></div>
+      <a class="nom" href="${link}" target="_blank" rel="noopener">${sub(d)}${esc(d.comercio)}</a>
+      <div class="pct"><span class="hasta">hasta</span><span class="num">${d.pct}<i>%</i></span></div>
     </div>
     <div class="meta">
+      ${ultimo ? `<span class="dato ultimo">${ico("reloj")}Último día</span>` : ""}
       ${d.dias_confirmados === false ? "" :
-        `<span class="badge">📅 ${dias_label(d.dias)}</span>`}
-      ${ultimo ? '<span class="badge ultimo">⏳ último día</span>' : ""}
-      ${(() => {
-        const cs = comunasDelDia(d, state.dia);
-        return cs.length
-          ? `<span class="badge">📍 ${cs.slice(0, 2).map(esc).join(" · ")}` +
-            `${cs.length > 2 ? ` +${cs.length - 2}` : ""}</span>`
-          : "";
-      })()}
-      ${tope ? `<span class="badge">${esc(tope)}</span>` : ""}
-      ${d.condicion ? `<span class="badge cond">${esc(d.condicion)}</span>` : ""}
+        `<span class="dato">${ico("dia")}${dias_label(d.dias)}</span>`}
+      ${cs.length
+        ? `<span class="dato">${ico("lugar")}${cs.slice(0, 2).map(esc).join(" · ")}` +
+          `${cs.length > 2 ? ` +${cs.length - 2}` : ""}</span>`
+        : ""}
+      ${tope ? `<span class="dato">${ico("tope")}${esc(tope)}</span>` : ""}
     </div>
+    ${d.condicion ? `<div class="cond">${ico("tarjeta")}${esc(d.condicion)}</div>` : ""}
     ${locs.length && variaPorLocal(d, state.dia)
       ? `<div class="locales"><b>Hoy solo en:</b> ${locs.map(nombreLocal).join(" · ")}</div>`
       : ""}
-  </div>`;
+  </article>`;
 }
 
 function esc(s) {
@@ -475,6 +547,7 @@ function esc(s) {
 async function init() {
   document.getElementById("cta-form").href = FORM_URL;
   document.getElementById("cta-form-2").href = FORM_URL;
+  document.getElementById("cta-top").href = FORM_URL;
   document.getElementById("buscar").addEventListener("input", e => {
     state.q = e.target.value; render();
   });
@@ -492,7 +565,7 @@ async function init() {
     document.getElementById("generado").textContent =
       "Datos actualizados el " + gen.toLocaleDateString("es-CL", { day: "numeric", month: "long" });
   } catch (e) {
-    document.getElementById("hero-sub").textContent = "No se pudieron cargar las ofertas 😕";
+    document.getElementById("stat-lbl").textContent = "No se pudieron cargar las ofertas 😕";
     return;
   }
   render();

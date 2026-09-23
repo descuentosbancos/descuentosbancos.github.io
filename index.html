@@ -8,7 +8,14 @@
 <meta property="og:title" content="🍽️ DescuentosBancos — comida · Santiago">
 <meta property="og:description" content="Restaurantes, cafés y delivery con descuento hoy según tu banco. Gratis y actualizado.">
 <meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#f6f2ea" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#141210" media="(prefers-color-scheme: dark)">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🍽️</text></svg>">
+<!-- Fraunces solo para titulares y porcentajes; el cuerpo usa la fuente del
+     sistema. display=swap: si la fuente tarda, el texto se ve igual. -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600..800&display=swap">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
       integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
 <!-- Solo la base de markercluster (animaciones/posicionado). El tema por
@@ -19,33 +26,59 @@
 </head>
 <body>
 
-<header class="hero">
-  <div class="wrap">
-    <div class="hero-kicker">Comida · Santiago · actualizado solo</div>
-    <h1>🍽️ DescuentosBancos</h1>
-    <p class="hero-sub" id="hero-sub">Cargando ofertas…</p>
-    <a class="btn-cta" id="cta-form" href="#" target="_blank" rel="noopener">
-      📬 Recíbelo por correo cada mañana — gratis
+<header class="top">
+  <div class="wrap top-inner">
+    <a class="marca" href="./" aria-label="DescuentosBancos, inicio">
+      <span class="marca-logo" aria-hidden="true">%</span>
+      <span>Descuentos<b>Bancos</b></span>
     </a>
+    <a class="top-link" id="cta-top" href="#" target="_blank" rel="noopener">Correo diario gratis</a>
   </div>
 </header>
+
+<section class="hero">
+  <div class="wrap hero-grid">
+    <div class="hero-txt">
+      <p class="hero-kicker">Comida · Santiago · se actualiza solo</p>
+      <h1>Dónde comer con descuento <em id="hero-cuando">hoy</em></h1>
+      <p class="hero-sub" id="hero-sub">
+        Los descuentos en restaurantes y cafés de <b>CMR Falabella, Banco de Chile,
+        BCI, Santander, Itaú y BICE</b>, juntos y filtrados por día.
+      </p>
+      <div class="hero-acciones">
+        <a class="btn-cta" id="cta-form" href="#" target="_blank" rel="noopener">
+          Recíbelo cada mañana en tu correo
+        </a>
+        <span class="hero-nota">Gratis · sin spam · te desuscribes cuando quieras</span>
+      </div>
+    </div>
+    <aside class="hero-stat" id="hero-stat" aria-live="polite">
+      <div class="stat-num" id="stat-num">—</div>
+      <div class="stat-lbl" id="stat-lbl">cargando ofertas…</div>
+      <div class="stat-barras" id="stat-barras"></div>
+    </aside>
+  </div>
+</section>
 
 <!-- Controles: día + buscador + filtro por banco + vista lista/mapa.
      Va FUERA de <main> para que la barra pegajosa ocupe todo el ancho. -->
 <div class="toolbar">
   <div class="wrap toolbar-inner">
     <nav class="tabs" id="tabs" aria-label="Día de la semana"></nav>
-    <div class="controls-top">
-      <div class="buscador">
-        <input type="search" id="buscar" placeholder="Buscar restaurante o café…" aria-label="Buscar restaurante o café">
-      </div>
-      <select id="comuna" class="selector" aria-label="Filtrar por comuna"></select>
-      <div class="vista-toggle" role="group" aria-label="Cambiar vista">
-        <button id="ver-lista" class="vt activo" aria-pressed="true">☰ Lista</button>
-        <button id="ver-mapa" class="vt" aria-pressed="false">🗺️ Mapa</button>
-      </div>
+    <div class="buscador">
+      <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+      <input type="search" id="buscar" placeholder="Buscar restaurante o café…" aria-label="Buscar restaurante o café">
+    </div>
+    <div class="vista-toggle" role="group" aria-label="Cambiar vista">
+      <button id="ver-lista" class="vt activo" aria-pressed="true">
+        <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 6h13M8 12h13M8 18h13M3.5 6h.01M3.5 12h.01M3.5 18h.01"/></svg><span>Lista</span>
+      </button>
+      <button id="ver-mapa" class="vt" aria-pressed="false">
+        <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 4 3 6.5v13.5l6-2.5 6 2.5 6-2.5V4l-6 2.5L9 4zM9 4v13.5M15 6.5V20"/></svg><span>Mapa</span>
+      </button>
     </div>
     <div class="chips" id="chips" role="group" aria-label="Filtrar por banco"></div>
+    <select id="comuna" class="selector" aria-label="Filtrar por comuna"></select>
     <p class="aviso" id="comuna-aviso" hidden></p>
   </div>
 </div>
@@ -55,7 +88,10 @@
   <!-- Vista mapa -->
   <section id="mapa-vista" hidden>
     <div class="mapa-barra">
-      <button id="btn-ubicacion" class="btn-ubic">📍 Usar mi ubicación</button>
+      <button id="btn-ubicacion" class="btn-ubic">
+        <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3.5"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3"/><circle cx="12" cy="12" r="7.5"/></svg>
+        Usar mi ubicación
+      </button>
       <span id="mapa-info" class="mapa-info"></span>
     </div>
     <div id="mapa"></div>
@@ -63,7 +99,7 @@
 
   <!-- Destacados del día -->
   <section id="destacados-sec" hidden>
-    <h2>⭐ Lo mejor de hoy</h2>
+    <h2 class="sec-tit">Lo mejor de <span id="dest-cuando">hoy</span></h2>
     <div class="destacados" id="destacados"></div>
   </section>
 
@@ -72,18 +108,21 @@
 
   <!-- Cómo funciona -->
   <section class="como" id="como-funciona">
-    <h2>¿Cómo funciona?</h2>
-    <ul>
-      <li>Reunimos en un solo lugar los <b>descuentos de comida</b> (restaurantes, cafés y delivery) que publican <b>CMR Falabella, Banco de Chile, BCI, Santander, Itaú y BICE</b> para Santiago.</li>
-      <li>Los datos se actualizan <b>automáticamente</b> desde los sitios de los bancos (los lunes y el día 1 de cada mes). Las ofertas vencidas se ocultan solas.</li>
-      <li>El porcentaje es el <b>máximo</b> («hasta X%»): puede variar según tarjeta (débito/crédito) o local. Cuando el banco lo informa, mostramos el tope y la tarjeta requerida.</li>
-      <li><b>Verifica siempre</b> las condiciones en la app o sitio del banco antes de pagar — toca «Ver →» en cada oferta.</li>
-      <li>Este sitio es independiente: <b>no está afiliado</b> a ningún banco.</li>
-    </ul>
-    <div class="como-cta">
-      <p>¿Prefieres no entrar todos los días? Suscríbete y cada mañana (~10:05) te llega <b>gratis</b> el resumen del día a tu correo.</p>
-      <a class="btn-cta" id="cta-form-2" href="#" target="_blank" rel="noopener">📬 Suscribirme al correo diario</a>
+    <h2 class="sec-tit">¿Cómo funciona?</h2>
+    <ol class="como-lista">
+      <li><b>Todo en un lugar.</b> Reunimos los descuentos de comida (restaurantes, cafés y delivery) que publican CMR Falabella, Banco de Chile, BCI, Santander, Itaú y BICE para Santiago.</li>
+      <li><b>Se actualiza solo.</b> Los datos salen de los sitios de los bancos (los lunes y el día 1 de cada mes). Las ofertas vencidas se ocultan solas.</li>
+      <li><b>El % es el máximo.</b> «Hasta X%» puede variar según tarjeta (débito/crédito) o local. Cuando el banco lo informa, mostramos el tope y la tarjeta requerida.</li>
+      <li><b>Verifica antes de pagar.</b> Revisa las condiciones en la app o sitio del banco: cada oferta enlaza a su ficha. Este sitio es independiente y <b>no está afiliado</b> a ningún banco.</li>
+    </ol>
+  </section>
+
+  <section class="suscribir">
+    <div>
+      <h2>¿Prefieres no entrar todos los días?</h2>
+      <p>Cada mañana (~10:05) te llega <b>gratis</b> el resumen del día a tu correo.</p>
     </div>
+    <a class="btn-cta" id="cta-form-2" href="#" target="_blank" rel="noopener">Suscribirme al correo diario</a>
   </section>
 
 </main>
