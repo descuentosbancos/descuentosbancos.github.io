@@ -1,50 +1,54 @@
 /* DescuentosBancos — hoja de estilos.
-   Tono de guía gastronómica: papel cálido, tinta oscura y un titular con
-   serifa (Fraunces) para los números. El color de cada banco se usa como
-   ACENTO (punto, %, filete) y no como bloque: así la marca se lee sin que la
-   página parezca un semáforo. */
+   Tono de cartel de oferta: gris neutro, tinta negra y amarillo "oferta"
+   para lo seleccionado; Bricolage Grotesque condensada en titulares y
+   cifras. El color de cada banco se usa como ACENTO (punto, %, borde) y no
+   como bloque: así la marca se lee sin que la página parezca un semáforo. */
 
 :root {
-  --bg: #f6f2ea;
-  --surface: #fffdf9;
-  --surface-2: #f0ebe1;
-  --text: #1d1a16;
-  --text-2: #4b453d;
-  --muted: #7d756a;
-  --border: #e6dfd3;
-  --border-fuerte: #d4cbbd;
+  --bg: #f1f2ee;
+  --surface: #ffffff;
+  --surface-2: #e6e8e3;
+  --text: #121412;
+  --text-2: #3c413c;
+  --muted: #666c66;
+  --border: #dcdfd8;
+  --border-fuerte: #c3c8c0;
 
-  --acento: #c8471a;          /* pimentón: foco, interacción, "hoy" */
-  --acento-suave: #f8e3d6;
+  --oferta: #ffd60a;          /* amarillo de cartel: selección y realce */
+  --en-oferta: #121412;       /* texto sobre el amarillo (siempre oscuro) */
+  --acento: #121412;          /* foco e interacción: tinta */
+  --acento-suave: rgba(18, 20, 18, .13);
   --verde: #157f3c;           /* CTA de suscripción (igual que el correo) */
   --amber-bg: #fdf0d2;
   --amber-tx: #8a5300;
 
-  --sombra-1: 0 1px 2px rgba(40, 30, 15, .05), 0 1px 3px rgba(40, 30, 15, .04);
-  --sombra-2: 0 6px 16px rgba(40, 30, 15, .08), 0 2px 4px rgba(40, 30, 15, .04);
-  --sombra-3: 0 16px 40px rgba(40, 30, 15, .14);
+  --sombra-1: 0 1px 2px rgba(15, 20, 15, .05), 0 1px 3px rgba(15, 20, 15, .04);
+  --sombra-2: 0 6px 16px rgba(15, 20, 15, .08), 0 2px 4px rgba(15, 20, 15, .04);
+  --sombra-3: 0 16px 40px rgba(15, 20, 15, .15);
 
   --r-sm: 8px;
   --r-md: 14px;
   --r-lg: 18px;
-  --r-xl: 26px;
+  --r-xl: 24px;
 
-  --display: "Fraunces", Georgia, "Times New Roman", serif;
+  --body: "Bricolage Grotesque", -apple-system, BlinkMacSystemFont, "Segoe UI",
+          Roboto, Helvetica, Arial, sans-serif;
+  --display: var(--body);
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: #141210;
-    --surface: #1d1a17;
-    --surface-2: #27231f;
-    --text: #f3eee6;
-    --text-2: #cfc7bb;
-    --muted: #9b9286;
-    --border: #312c27;
-    --border-fuerte: #443e37;
+    --bg: #0e0f0e;
+    --surface: #181a18;
+    --surface-2: #232623;
+    --text: #f0f2ee;
+    --text-2: #c9cdc7;
+    --muted: #949a93;
+    --border: #2b2f2b;
+    --border-fuerte: #3d423d;
 
-    --acento: #ff8a52;
-    --acento-suave: #3a2216;
+    --acento: #ffd60a;
+    --acento-suave: rgba(255, 214, 10, .2);
     --verde: #2fbf66;
     --amber-bg: #3b2a0c;
     --amber-tx: #ffd08a;
@@ -75,8 +79,8 @@ body {
   margin: 0;
   background: var(--bg);
   color: var(--text);
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto,
-               Helvetica, Arial, sans-serif;
+  font-family: var(--body);
+  font-optical-sizing: auto;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
@@ -105,16 +109,23 @@ body {
 .marca {
   display: inline-flex; align-items: center; gap: 10px;
   color: var(--text); text-decoration: none;
-  font-family: var(--display); font-size: 20px; font-weight: 650;
-  letter-spacing: -.01em;
+  font-size: 21px; font-weight: 500; font-stretch: 85%;
+  letter-spacing: -.02em;
 }
-.marca b { font-weight: 800; color: var(--acento); }
+.marca b { font-weight: 800; }
+/* Etiqueta de precio: amarilla, con el agujero del cordel. */
 .marca-logo {
-  width: 32px; height: 32px; border-radius: 10px;
+  position: relative;
+  width: 34px; height: 34px; border-radius: 9px 9px 9px 16px;
   display: grid; place-items: center;
-  background: var(--text); color: var(--bg);
-  font-family: var(--display); font-weight: 800; font-size: 19px;
-  transform: rotate(-6deg);
+  background: var(--oferta); color: var(--en-oferta);
+  font-weight: 800; font-size: 19px; font-stretch: 80%;
+  transform: rotate(-8deg);
+  box-shadow: 0 2px 0 rgba(0, 0, 0, .12);
+}
+.marca-logo::after {
+  content: ""; position: absolute; top: 4px; right: 4px;
+  width: 5px; height: 5px; border-radius: 999px; background: var(--bg);
 }
 .top-link {
   font-size: 13.5px; font-weight: 700; color: var(--text);
@@ -134,23 +145,36 @@ body {
   align-items: center;
 }
 .hero-kicker {
-  margin: 0 0 14px;
-  font-size: 12px; font-weight: 750;
-  letter-spacing: .14em; text-transform: uppercase;
-  color: var(--acento);
+  display: inline-flex; align-items: center; gap: 8px;
+  margin: 0 0 16px;
+  font-size: 12px; font-weight: 700;
+  letter-spacing: .12em; text-transform: uppercase;
+  color: var(--text-2);
+}
+.hero-kicker::before {
+  content: ""; width: 10px; height: 10px; border-radius: 3px;
+  background: var(--oferta); box-shadow: 0 0 0 1px rgba(0, 0, 0, .08);
 }
 .hero h1 {
-  font-family: var(--display);
-  font-size: clamp(34px, 5.6vw, 60px);
-  line-height: 1.02;
+  font-size: clamp(40px, 6.4vw, 76px);
+  font-stretch: 78%;
+  line-height: .94;
   letter-spacing: -.025em;
-  font-weight: 750;
-  margin: 0 0 18px;
+  font-weight: 800;
+  margin: 0 0 20px;
   text-wrap: balance;
 }
-.hero h1 em {
-  font-style: italic;
-  color: var(--acento);
+/* "hoy" marcado con plumón amarillo, torcido como a mano. */
+.hero h1 mark {
+  color: var(--en-oferta);
+  background: var(--oferta);
+  padding: 0 .12em;
+  margin: 0 -.04em;
+  border-radius: .12em;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+  display: inline-block;
+  transform: rotate(-2deg);
 }
 .hero-sub {
   font-size: clamp(15.5px, 2vw, 18px);
@@ -182,21 +206,29 @@ body {
 @media (prefers-color-scheme: dark) { .btn-cta { color: #06200f; } }
 
 /* Tarjeta de cifras del hero: el número del día + reparto por banco. */
+/* Siempre oscura (una etiqueta de precio negra). Redefine los tokens de
+   texto localmente: así --tinta, que mezcla el color del banco con --text,
+   sale CLARA acá dentro y las barras se leen sobre el negro. */
 .hero-stat {
+  --text: #f0f2ee; --text-2: #c9cdc7; --muted: #8f958e;
+  --surface-2: #2a2e2a; --border-fuerte: #3f443f;
   position: relative;
-  background: var(--surface);
-  border: 1px solid var(--border);
+  background: #151715;
+  color: var(--text);
+  border: 1px solid #2b2f2b;
   border-radius: var(--r-xl);
-  padding: 26px 26px 22px;
-  box-shadow: var(--sombra-2);
+  padding: 26px 26px 20px;
+  box-shadow: var(--sombra-3);
 }
 .stat-num {
-  font-family: var(--display);
-  font-size: 76px; font-weight: 800; line-height: .9;
-  letter-spacing: -.04em;
+  font-size: 92px; font-weight: 800; line-height: .82; font-stretch: 75%;
+  letter-spacing: -.03em;
+  color: var(--oferta);
   font-variant-numeric: lining-nums tabular-nums;
 }
-.stat-lbl { font-size: 15px; color: var(--text-2); margin-top: 8px; font-weight: 600; }
+.stat-lbl { font-size: 15px; color: var(--text-2); margin-top: 10px; font-weight: 500; }
+.stat-fecha { margin-top: 14px; font-size: 11.5px; color: var(--muted); }
+.stat-fecha:empty { display: none; }
 .stat-barras {
   position: relative;
   margin-top: 22px; padding-top: 18px;
@@ -285,9 +317,10 @@ body {
 }
 .tab:hover { color: var(--text); background: color-mix(in srgb, var(--surface) 60%, transparent); }
 .tab.activo {
-  background: var(--surface);
-  color: var(--text);
-  box-shadow: var(--sombra-1), 0 0 0 1px var(--border);
+  background: var(--oferta);
+  color: var(--en-oferta);
+  font-weight: 750;
+  box-shadow: 0 1px 0 rgba(0, 0, 0, .12);
 }
 .tab .n {
   font-size: 11px;
@@ -295,11 +328,12 @@ body {
   color: var(--muted);
   font-variant-numeric: tabular-nums;
 }
-.tab.activo .n { color: var(--acento); }
+.tab.activo .n { color: var(--en-oferta); opacity: .6; }
 .tab .hoy-dot {
   width: 6px; height: 6px; border-radius: 999px;
   background: var(--acento); display: inline-block;
 }
+.tab.activo .hoy-dot { background: var(--en-oferta); }
 
 .vista-toggle {
   display: flex;
@@ -325,7 +359,7 @@ body {
 }
 .vt .ico { width: 15px; height: 15px; }
 .vt:hover { color: var(--text); }
-.vt.activo { background: var(--text); color: var(--bg); }
+.vt.activo { background: var(--oferta); color: var(--en-oferta); }
 
 .buscador { position: relative; flex: 1 1 220px; min-width: 0; }
 .buscador .ico {
@@ -345,6 +379,17 @@ body {
   transition: border-color .15s ease, box-shadow .15s ease;
 }
 #buscar::placeholder { color: var(--muted); }
+#buscar::-webkit-search-cancel-button { cursor: pointer; }
+.atajo {
+  position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
+  font: 600 11px/1 var(--body);
+  color: var(--muted);
+  border: 1px solid var(--border-fuerte); border-radius: 5px;
+  padding: 3px 6px 4px;
+  pointer-events: none;
+}
+#buscar:focus + .atajo, #buscar:not(:placeholder-shown) + .atajo { display: none; }
+@media (hover: none) { .atajo { display: none; } }
 #buscar:focus {
   outline: none;
   border-color: var(--acento);
@@ -416,10 +461,10 @@ body {
 
 /* ---------- Encabezados de sección ---------- */
 .sec-tit {
-  font-family: var(--display);
-  font-size: 26px;
-  font-weight: 750;
-  letter-spacing: -.015em;
+  font-size: 30px;
+  font-weight: 800;
+  font-stretch: 80%;
+  letter-spacing: -.02em;
   line-height: 1.15;
   margin: 36px 0 16px;
   color: var(--text);
@@ -447,14 +492,14 @@ body {
 .dest:hover { transform: translateY(-3px); box-shadow: var(--sombra-2); border-color: var(--tinta); }
 .dest-pct {
   flex-shrink: 0;
-  font-family: var(--display);
+  font-stretch: 75%;
   color: var(--tinta);
   line-height: .85;
   text-align: center;
 }
 .dest-pct small {
   display: block;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-family: var(--body);
   font-size: 10px; font-weight: 750; letter-spacing: .1em; text-transform: uppercase;
   color: var(--muted); margin-bottom: 4px;
 }
@@ -476,9 +521,12 @@ body {
 }
 .dest .bco::before { content: ""; width: 7px; height: 7px; border-radius: 999px; background: var(--tinta); }
 .dest .rank {
-  position: absolute; top: 12px; right: 14px;
-  font-family: var(--display); font-size: 13px; font-weight: 700;
-  color: var(--muted);
+  position: absolute; top: 12px; right: 12px;
+  min-width: 22px; height: 22px; padding: 0 6px;
+  display: grid; place-items: center;
+  font-size: 12px; font-weight: 800;
+  color: var(--en-oferta); background: var(--oferta);
+  border-radius: 6px;
 }
 
 /* ---------- Secciones por banco ---------- */
@@ -495,11 +543,11 @@ body {
 .banco-head .nom {
   display: inline-flex; align-items: center; gap: 10px;
   margin: 0;
-  font-family: var(--display);
-  font-size: 24px;
-  font-weight: 750;
-  letter-spacing: -.015em;
-  line-height: 1.1;
+  font-size: 28px;
+  font-weight: 800;
+  font-stretch: 80%;
+  letter-spacing: -.02em;
+  line-height: 1.05;
 }
 .banco-head .nom::before {
   content: "";
@@ -590,11 +638,11 @@ body {
   color: var(--tinta);
   white-space: nowrap;
   line-height: .9;
-  font-family: var(--display);
+  font-stretch: 75%;
 }
 .cardo .pct .hasta {
   display: block;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-family: var(--body);
   font-size: 9px;
   color: var(--muted);
   text-transform: uppercase;
@@ -603,7 +651,7 @@ body {
   margin-bottom: 3px;
 }
 .cardo .pct .num {
-  font-size: 30px;
+  font-size: 34px;
   font-weight: 800;
   letter-spacing: -.035em;
   font-variant-numeric: lining-nums tabular-nums;
@@ -668,7 +716,7 @@ body {
   cursor: pointer;
   transition: transform .15s ease, filter .15s ease;
 }
-@media (prefers-color-scheme: dark) { .btn-ubic { color: #2a1206; } }
+@media (prefers-color-scheme: dark) { .btn-ubic { color: var(--en-oferta); } }
 .btn-ubic:hover { filter: brightness(1.07); transform: translateY(-1px); }
 .mapa-info { font-size: 13px; color: var(--muted); }
 .mapa-info b { color: var(--text); }
@@ -753,7 +801,7 @@ body {
 .pop { padding: 14px 15px 13px; }
 .pop-top { display: flex; align-items: center; gap: 12px; padding-right: 12px; }
 .pop-pct {
-  font-family: var(--display);
+  font-stretch: 75%;
   font-size: 30px; font-weight: 800; line-height: 1;
   letter-spacing: -.035em; font-variant-numeric: lining-nums tabular-nums; flex-shrink: 0;
 }
@@ -801,7 +849,7 @@ body {
   margin-top: 28px;
 }
 .vacio-tit {
-  font-family: var(--display); font-size: 24px; font-weight: 750;
+  font-size: 26px; font-weight: 800; font-stretch: 80%;
   color: var(--text); margin: 0 0 6px;
 }
 .vacio p { margin: 0 auto; max-width: 30em; }
@@ -825,9 +873,11 @@ body {
 }
 .como-lista li::before {
   content: counter(paso, decimal-leading-zero);
-  display: block;
-  font-family: var(--display); font-size: 22px; font-weight: 800;
-  color: var(--acento); margin-bottom: 8px; line-height: 1;
+  display: inline-block;
+  font-size: 15px; font-weight: 800;
+  color: var(--en-oferta); background: var(--oferta);
+  padding: 4px 7px; border-radius: 6px;
+  margin-bottom: 12px; line-height: 1;
 }
 .como-lista li > b:first-child { display: block; color: var(--text); font-size: 15px; margin-bottom: 4px; }
 
@@ -837,20 +887,37 @@ body {
   gap: 18px 32px; flex-wrap: wrap;
   padding: 30px 34px;
   border-radius: var(--r-xl);
-  background: var(--text);
-  color: var(--bg);
+  background: var(--oferta);
+  color: var(--en-oferta);
 }
 .suscribir h2 {
-  font-family: var(--display); font-size: 26px; font-weight: 750;
-  letter-spacing: -.015em; line-height: 1.15; margin: 0 0 6px;
+  font-size: 32px; font-weight: 800; font-stretch: 78%;
+  letter-spacing: -.02em; line-height: 1.05; margin: 0 0 6px;
 }
-.suscribir p { margin: 0; font-size: 15px; opacity: .8; }
-.suscribir p b { opacity: 1; }
+.suscribir p { margin: 0; font-size: 15.5px; }
+/* Sobre el amarillo, el botón va en tinta (el verde no contrasta ahí). */
+.suscribir .btn-cta {
+  background: var(--en-oferta); color: #fff;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, .18);
+}
+
+/* ---------- Volver arriba ---------- */
+.arriba {
+  position: fixed; right: 18px; bottom: 18px; z-index: 600;
+  width: 46px; height: 46px; border-radius: 999px;
+  display: grid; place-items: center;
+  border: 0; cursor: pointer;
+  background: var(--oferta); color: var(--en-oferta);
+  box-shadow: var(--sombra-3);
+  transition: transform .15s ease;
+}
+.arriba .ico { width: 20px; height: 20px; stroke-width: 2.5; }
+.arriba:hover { transform: translateY(-2px); }
 
 /* ---------- Footer ---------- */
 .pie {
   margin-top: 56px;
-  padding: 24px 0 40px;
+  padding: 24px 0 84px;  /* espacio para el botón de volver arriba */
   font-size: 12.5px;
   color: var(--muted);
   text-align: center;
@@ -882,8 +949,8 @@ body {
   .wrap { padding: 0 16px; }
   .toolbar-inner { padding: 8px 16px 9px; gap: 8px; }
   .top-inner { height: 54px; }
-  .marca { font-size: 18px; }
-  .marca-logo { width: 28px; height: 28px; font-size: 17px; border-radius: 9px; }
+  .marca { font-size: 19px; }
+  .marca-logo { width: 30px; height: 30px; font-size: 17px; }
   .top-link { display: none; }  /* el CTA del hero está justo debajo */
 
   .hero { padding: 24px 0 22px; }
@@ -896,7 +963,8 @@ body {
   /* En móvil la cifra va en una sola línea y sin el reparto por banco:
      los chips de la barra ya muestran ese conteo. */
   .hero-stat { display: flex; align-items: baseline; gap: 12px; padding: 16px 18px; border-radius: var(--r-lg); }
-  .stat-num { font-size: 44px; }
+  .stat-num { font-size: 58px; }
+  .stat-fecha { display: none; }
   .stat-lbl { margin: 0; font-size: 14px; }
   .stat-barras { display: none; }
 
@@ -927,9 +995,9 @@ body {
   .chips::-webkit-scrollbar { display: none; }
   .chip { flex-shrink: 0; height: 32px; }
 
-  .sec-tit { font-size: 22px; margin-top: 28px; }
+  .sec-tit { font-size: 26px; margin-top: 28px; }
   .banco-sec { margin-top: 32px; }
-  .banco-head .nom { font-size: 21px; }
+  .banco-head .nom { font-size: 24px; }
   /* Sin espacio, el enlace del banco aplastaba el nombre a dos líneas.
      Cada tarjeta ya enlaza al banco, así que acá sobra. */
   .banco-head .ver-mas { display: none; }
@@ -939,7 +1007,7 @@ body {
   .como { margin-top: 48px; }
   .como-lista { grid-template-columns: 1fr; gap: 10px; }
   .suscribir { padding: 24px 20px; border-radius: var(--r-lg); }
-  .suscribir h2 { font-size: 22px; }
+  .suscribir h2 { font-size: 26px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
