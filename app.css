@@ -702,6 +702,21 @@ body {
   display: inline-flex; align-items: center; gap: 5px;
 }
 .cond .ico { width: 13px; height: 13px; }
+/* Compartir la oferta: ícono en la esquina inferior, encima del link que
+   cubre la tarjeta (.nom::after). La última fila deja espacio para él. */
+.enviar {
+  position: absolute; z-index: 1; right: 9px; bottom: 9px;
+  width: 32px; height: 32px;
+  display: grid; place-items: center;
+  color: var(--muted);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  cursor: pointer;
+}
+.enviar .ico { width: 15px; height: 15px; }
+.enviar:hover { color: var(--tinta); border-color: var(--tinta); }
+.cardo > :nth-last-child(2):not(.fila) { margin-right: 34px; }
 
 /* Desglose por local dentro de la tarjeta */
 .locales {

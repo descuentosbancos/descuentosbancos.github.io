@@ -66,6 +66,7 @@ const ICO = {
   tope: '<circle cx="12" cy="12" r="9"/><path d="M15 9.3c-.5-.9-1.6-1.5-3-1.5-1.7 0-2.9.8-2.9 2.1s1.2 1.8 2.9 2.1 2.9.9 2.9 2.2-1.2 2.1-2.9 2.1c-1.4 0-2.5-.6-3-1.5M12 6v1.8M12 16.3V18"/>',
   tarjeta: '<rect x="2.5" y="5" width="19" height="14" rx="2.5"/><path d="M2.5 10h19M6.5 15h4"/>',
   reloj: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.2 2"/>',
+  enviar: '<path d="M21 3 10 14M21 3l-7 18-4-7-7-4 18-7z"/>',
 };
 const ico = k => `<svg class="ico" viewBox="0 0 24 24" aria-hidden="true">${ICO[k]}</svg>`;
 
@@ -598,6 +599,8 @@ function card(d, bco) {
     ${locs.length && variaPorLocal(d, state.dia)
       ? `<div class="locales"><b>${soloEn()}</b> ${locs.map(nombreLocal).join(" · ")}</div>`
       : ""}
+    <button class="enviar" type="button" data-banco="${esc(bco.id)}" data-comercio="${esc(d.comercio)}"
+      title="Compartir" aria-label="Compartir ${esc(d.comercio)} por WhatsApp u otra app">${ico("enviar")}</button>
   </article>`;
 }
 
@@ -622,6 +625,26 @@ async function init() {
       window.open("https://wa.me/?text=" + encodeURIComponent(texto + " " + url), "_blank", "noopener");
     }
   };
+  // Compartir UNA oferta ("¿almorzamos acá?"): el link lleva al sitio con esa
+  // oferta ya filtrada (banco + nombre + día), no a la ficha del banco, para
+  // que quien lo recibe también llegue acá.
+  document.getElementById("resultado").addEventListener("click", async e => {
+    const btn = e.target.closest(".enviar");
+    if (!btn) return;
+    const d = state.data.find(x => x.comercio === btn.dataset.comercio &&
+      BANCOS.find(b => b.nombre === x.banco)?.id === btn.dataset.banco);
+    if (!d) return;
+    const p = new URLSearchParams({ b: btn.dataset.banco, q: d.comercio });
+    if (state.dia !== diaSantiago()) p.set("d", state.dia);
+    const url = location.origin + location.pathname + "?" + p;
+    const dias = d.dias_confirmados === false ? "" : ` (${dias_label(d.dias)})`;
+    const texto = `${d.pct}% en ${d.comercio} con ${d.banco}${dias}`;
+    if (navigator.share) {
+      try { await navigator.share({ title: d.comercio, text: texto, url }); } catch (e) { /* cancelado */ }
+    } else {
+      window.open("https://wa.me/?text=" + encodeURIComponent(texto + " " + url), "_blank", "noopener");
+    }
+  });
   const buscar = document.getElementById("buscar");
   buscar.addEventListener("input", e => {
     state.q = e.target.value; render();
