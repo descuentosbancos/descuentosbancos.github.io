@@ -11,6 +11,8 @@ const BANCOS = [
   { id: "santander", nombre: "Santander",      color: "#EC0000", pin: "#BF0000", url: "https://banco.santander.cl/personas/beneficios" },
   { id: "itau", nombre: "Itaú",           color: "#EC7000", pin: "#A85000", url: "https://www.itau.cl/personas/beneficios" },
   { id: "bice", nombre: "BICE",           color: "#004B8D", pin: "#004B8D", url: "https://www.bice.cl/personas/beneficios" },
+  // Rojo más oscuro que Santander para distinguirlos en chips y pines.
+  { id: "scotiabank", nombre: "Scotiabank", color: "#B4122B", pin: "#9A0F25", url: "https://www.scotiarewards.cl/scclubfront/categoria/platosycomida/rutagourmet" },
 ];
 
 // Base del mapa: Esri Canvas (gris neutro) en vez de OpenStreetMap crudo. El
