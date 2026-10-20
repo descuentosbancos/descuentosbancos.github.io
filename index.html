@@ -108,7 +108,20 @@
       </button>
     </div>
     <div class="chips" id="chips" role="group" aria-label="Filtrar por banco"></div>
-    <select id="comuna" class="selector" aria-label="Filtrar por comuna"></select>
+    <details class="selector comunas-dd" id="comuna-dd">
+      <summary aria-label="Filtrar por comunas"><span id="comuna-sum-txt">Todas las comunas</span></summary>
+      <div class="dd-panel">
+        <div class="dd-head">Elige una o varias <button type="button" id="comuna-limpiar" class="dd-limpiar" hidden>Limpiar</button></div>
+        <div class="dd-lista" id="comuna-lista"></div>
+      </div>
+    </details>
+    <div class="rapidos" id="rapidos" role="group" aria-label="Filtros rápidos">
+      <button type="button" class="rapido" data-min="30" aria-pressed="false">30%+</button>
+      <button type="button" class="rapido" data-min="40" aria-pressed="false">40%+</button>
+      <button type="button" class="rapido" data-modo="presencial" aria-pressed="false">En el local</button>
+      <button type="button" class="rapido" data-modo="delivery" aria-pressed="false">Delivery / apps</button>
+    </div>
+    <p class="aviso aviso-info" id="bancos-aviso" hidden>Mostrando tus bancos guardados · <button type="button" id="bancos-todos">Ver todos</button></p>
     <p class="aviso" id="comuna-aviso" hidden></p>
   </div>
 </div>

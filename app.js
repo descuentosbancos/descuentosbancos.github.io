@@ -69,14 +69,69 @@ const ICO = {
   tarjeta: '<rect x="2.5" y="5" width="19" height="14" rx="2.5"/><path d="M2.5 10h19M6.5 15h4"/>',
   reloj: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.2 2"/>',
   enviar: '<path d="M21 3 10 14M21 3l-7 18-4-7-7-4 18-7z"/>',
+  movil: '<rect x="6.5" y="2.5" width="11" height="19" rx="2.5"/><path d="M11 18h2"/>',
 };
 const ico = k => `<svg class="ico" viewBox="0 0 24 24" aria-hidden="true">${ICO[k]}</svg>`;
 
 const state = {
   dia: diaSantiago(), q: "", bancos: new Set(BANCOS.map(b => b.nombre)),
-  data: [], vista: "lista", user: null, comuna: "",
+  data: [], vista: "lista", user: null,
+  comunas: new Set(),     // varias a la vez: Providencia + Las Condes
+  min: 0,                 // % mínimo: 0, 30 o 40
+  modo: "",               // "" | "presencial" | "delivery"
+  bancosGuardados: false, // la selección de bancos vino del navegador
   expandidos: new Set(),  // bancos con "ver todas" abierto
 };
+
+// ---------- Preferencias guardadas (localStorage) ----------
+// Solo comodidad de quien visita: si el navegador bloquea el almacenamiento
+// (modo privado, Safari estricto) el sitio funciona igual, sin recordar.
+const GUARDA = { bancos: "db.bancos", comunas: "db.comunas" };
+function leerGuardado(k) {
+  try { return JSON.parse(localStorage.getItem(k) || "null"); } catch (e) { return null; }
+}
+function guardar(k, v) {
+  try {
+    if (v && v.length) localStorage.setItem(k, JSON.stringify(v));
+    else localStorage.removeItem(k);
+  } catch (e) { /* sin almacenamiento: no se recuerda */ }
+}
+// Se guarda SOLO lo que la persona eligió en los chips o en comunas: no un
+// link compartido (?b=bice) ni tocar una barra del resumen, que son vistazos.
+function guardarBancos() {
+  guardar(GUARDA.bancos, state.bancos.size === BANCOS.length ? null
+    : BANCOS.filter(b => state.bancos.has(b.nombre)).map(b => b.id));
+}
+function guardarComunas() { guardar(GUARDA.comunas, [...state.comunas]); }
+
+// ---------- Letra chica: modalidad, tarjeta y canal ----------
+// Delivery / apps: el banco lo marca (subcat) o lo dice la condición
+// ("solo online", "vía Justo"). "En tótem/app" de Banco de Chile es en el
+// local (se pide en el tótem), así que cuenta como presencial.
+function esDelivery(d) {
+  return d.subcat === "delivery" || /solo online|v[ií]a justo|delivery/i.test(d.condicion || "");
+}
+const PREMIUM = ["Infinite", "Signature", "Black", "Platinum", "Legend", "Limitless",
+                 "Elite", "AMEX", "WorldMember", "Banca Joven"];
+function tarjetaExclusiva(d) {
+  const c = d.condicion || "";
+  const hay = PREMIUM.filter(k => new RegExp("\\b" + k + "\\b", "i").test(c));
+  return hay.length ? "Solo " + hay.join("/") : "";
+}
+function canal(d) {
+  const c = d.condicion || "";
+  if (/v[ií]a justo/i.test(c)) return "Pide por Justo";
+  if (/solo online/i.test(c)) return "Solo online";
+  if (/t[oó]tem\/app/i.test(c)) return "Tótem o app";
+  if (/\bQR\b/i.test(c)) return "Pago con QR";
+  if (/\bapp\b/i.test(c)) return "Con la app";
+  return d.subcat === "delivery" ? "Delivery" : "";
+}
+// Clave para reconocer el MISMO restaurante en distintos bancos: sin tildes,
+// sin mayúsculas ni signos ("Shi Nuá" / "Shi Nua").
+function claveLocal(nombre) {
+  return norm(nombre).replace(/[^a-z0-9]+/g, " ").trim();
+}
 
 // Locales del descuento donde vale el día elegido. [] si el banco no publica
 // días por local (el caso normal: un solo local, y `dias` ya es específico).
@@ -159,8 +214,10 @@ function visibles(todosLosBancos = false) {
     (!d.vigencia || d.vigencia >= hoy) &&
     (todosLosBancos || state.bancos.has(d.banco)) &&
     // Un descuento puede valer en VARIAS comunas (una cadena): basta con que
-    // la elegida esté entre las suyas.
-    (!state.comuna || comunasDelDia(d, state.dia).includes(state.comuna)) &&
+    // alguna de las elegidas esté entre las suyas.
+    (!state.comunas.size || comunasDelDia(d, state.dia).some(c => state.comunas.has(c))) &&
+    d.pct >= state.min &&
+    (!state.modo || (state.modo === "delivery") === esDelivery(d)) &&
     // El buscador también encuentra por comuna ("ñuñoa", "providencia"),
     // con las comunas donde vale ESE día.
     (!q || norm(d.comercio).includes(q) ||
@@ -179,9 +236,24 @@ function leerURL() {
   const ids = (p.get("b") || "").split(",").filter(Boolean);
   const elegidos = BANCOS.filter(b => ids.includes(b.id)).map(b => b.nombre);
   if (elegidos.length) state.bancos = new Set(elegidos);
-  if (p.get("c")) state.comuna = p.get("c");  // render() la descarta si no aplica
+  // render() descarta las comunas que no aplican el día elegido.
+  if (p.get("c")) state.comunas = new Set(p.get("c").split(",").filter(Boolean));
   if (p.get("q")) state.q = p.get("q");
   if (p.get("v") === "mapa") state.vista = "mapa";
+  const min = parseInt(p.get("m"), 10);
+  if (min === 30 || min === 40) state.min = min;
+  if (["presencial", "delivery"].includes(p.get("t"))) state.modo = p.get("t");
+  // Lo guardado en el navegador aplica solo si el link no trae ese filtro:
+  // un link compartido muestra lo que se quiso compartir.
+  if (!elegidos.length) {
+    const ids = leerGuardado(GUARDA.bancos);
+    const guard = BANCOS.filter(b => (ids || []).includes(b.id)).map(b => b.nombre);
+    if (guard.length && guard.length < BANCOS.length) {
+      state.bancos = new Set(guard);
+      state.bancosGuardados = true;
+    }
+  }
+  if (!p.get("c")) state.comunas = new Set(leerGuardado(GUARDA.comunas) || []);
 }
 function escribirURL() {
   const p = new URLSearchParams();
@@ -189,7 +261,9 @@ function escribirURL() {
   if (state.bancos.size < BANCOS.length) {
     p.set("b", BANCOS.filter(b => state.bancos.has(b.nombre)).map(b => b.id).join(","));
   }
-  if (state.comuna) p.set("c", state.comuna);
+  if (state.comunas.size) p.set("c", [...state.comunas].join(","));
+  if (state.min) p.set("m", state.min);
+  if (state.modo) p.set("t", state.modo);
   if (state.q.trim()) p.set("q", state.q.trim());
   if (state.vista === "mapa") p.set("v", "mapa");
   const qs = p.toString();
@@ -224,7 +298,9 @@ function render() {
     if (!cs.length) sinComuna++;
     for (const c of cs) cuenta[c] = (cuenta[c] || 0) + 1;
   }
-  if (state.comuna && !cuenta[state.comuna]) state.comuna = "";  // ya no aplica
+  // Las que no tienen ofertas este día ya no aplican (no se borran de lo
+  // guardado: el lunes pueden volver a tener).
+  for (const c of [...state.comunas]) if (!cuenta[c]) state.comunas.delete(c);
 
   const items = visibles();
 
@@ -282,22 +358,38 @@ function render() {
     tabs.appendChild(b);
   }
 
-  // Selector de comunas: se reconstruye en cada render para no ofrecer
+  // Comunas (varias a la vez): se reconstruye en cada render para no ofrecer
   // comunas sin ofertas el día elegido.
-  const sel = document.getElementById("comuna");
   const comunas = Object.keys(cuenta).sort((a, b) => cuenta[b] - cuenta[a]);
-  sel.innerHTML =
-    `<option value="">Todas las comunas (${delDia.length})</option>` +
-    comunas.map(c =>
-      `<option value="${esc(c)}"${c === state.comuna ? " selected" : ""}>` +
-      `${esc(c)} (${cuenta[c]})</option>`).join("");
+  const nCom = state.comunas.size;
+  document.getElementById("comuna-sum-txt").textContent =
+    nCom === 0 ? `Todas las comunas` :
+    nCom === 1 ? [...state.comunas][0] : `${nCom} comunas`;
+  document.getElementById("comuna-dd").classList.toggle("activo", nCom > 0);
+  document.getElementById("comuna-lista").innerHTML = comunas.map(c =>
+    `<label class="dd-op"><input type="checkbox" value="${esc(c)}"` +
+    `${state.comunas.has(c) ? " checked" : ""}><span>${esc(c)}</span>` +
+    `<span class="n">${cuenta[c]}</span></label>`).join("");
+  document.getElementById("comuna-limpiar").hidden = !nCom;
   // No se puede afirmar la comuna de todos: se DICE, en vez de esconderlos.
   const aviso = document.getElementById("comuna-aviso");
-  aviso.hidden = !(state.comuna && sinComuna);
+  aviso.hidden = !(nCom && sinComuna);
   if (!aviso.hidden) {
     aviso.textContent = `${sinComuna} oferta(s) sin comuna conocida no se ` +
       `muestran con este filtro.`;
   }
+
+  // Filtros rápidos: % mínimo y modalidad (un toque activa, otro desactiva).
+  for (const b of document.querySelectorAll("#rapidos .rapido")) {
+    const on = b.dataset.min ? state.min === +b.dataset.min : state.modo === b.dataset.modo;
+    b.classList.toggle("activo", on);
+    b.setAttribute("aria-pressed", on ? "true" : "false");
+  }
+
+  // "Mostrando tus bancos guardados": la selección vino del navegador, se
+  // dice (si no, alguien cree que el sitio tiene solo esos bancos).
+  const avisoB = document.getElementById("bancos-aviso");
+  avisoB.hidden = !(state.bancosGuardados && state.bancos.size < BANCOS.length);
 
   // Chips de banco, con cuántas ofertas tendría cada uno con los demás filtros.
   const chips = document.getElementById("chips");
@@ -324,6 +416,8 @@ function render() {
       } else {
         state.bancos.add(bco.nombre);
       }
+      guardarBancos();
+      state.bancosGuardados = state.bancos.size < BANCOS.length;
       render();
     };
     chips.appendChild(c);
@@ -348,6 +442,26 @@ function render() {
       <span class="rank" aria-hidden="true">${i + 1}</span>
     </a>`;
   }).join("");
+
+  // El mismo restaurante con otros bancos ESE día (comparativa en la ficha).
+  // Se cuenta sobre todo lo vigente del día, no solo lo filtrado: quien tiene
+  // BICE quiere saber si con otro banco le sale mejor. Sucursales distintas
+  // con el mismo nombre (comunas que no se tocan) no se mezclan.
+  const porLocal = {};
+  for (const d of delDia) (porLocal[claveLocal(d.comercio)] ||= []).push(d);
+  state.otros = d => {
+    const cs = comunasDelDia(d, state.dia);
+    const vistos = new Set([d.banco]);
+    return (porLocal[claveLocal(d.comercio)] || [])
+      .filter(o => {
+        if (vistos.has(o.banco)) return false;
+        const co = comunasDelDia(o, state.dia);
+        if (cs.length && co.length && !co.some(c => cs.includes(c))) return false;
+        vistos.add(o.banco);
+        return true;
+      })
+      .sort((a, b) => b.pct - a.pct);
+  };
 
   // Listado por banco
   const res = document.getElementById("resultado");
@@ -387,19 +501,21 @@ function render() {
     res.appendChild(sec);
   }
   if (!alguno) {
-    const filtrando = state.q || state.comuna || state.bancos.size < BANCOS.length;
+    const filtrando = state.q || state.comunas.size || state.min || state.modo ||
+      state.bancos.size < BANCOS.length;
     res.innerHTML = `<div class="vacio">
       ${filtrando
         ? `<p class="vacio-tit">Nada con esos filtros</p>
-           <p>Prueba <b>otro día</b>, otra comuna, borra la búsqueda o vuelve a activar todos los bancos.</p>
+           <p>Prueba <b>otro día</b>, otras comunas, quita el % mínimo, borra la búsqueda o vuelve a activar todos los bancos.</p>
            <button class="mas" id="limpiar">Limpiar filtros</button>`
         : `<p class="vacio-tit">Sin ofertas el ${DIA_LARGO[state.dia - 1]}</p>
            <p>Prueba otro día de la semana.</p>`}
     </div>`;
     const limpiar = document.getElementById("limpiar");
     if (limpiar) limpiar.onclick = () => {
-      state.q = ""; state.comuna = "";
+      state.q = ""; state.comunas.clear(); state.min = 0; state.modo = "";
       state.bancos = new Set(BANCOS.map(b => b.nombre));
+      guardarBancos(); guardarComunas(); state.bancosGuardados = false;
       document.getElementById("buscar").value = "";
       render();
     };
@@ -595,15 +711,40 @@ function card(d, bco) {
         ? `<span class="dato">${ico("lugar")}${cs.slice(0, 2).map(esc).join(" · ")}` +
           `${cs.length > 2 ? ` +${cs.length - 2}` : ""}</span>`
         : ""}
-      ${tope ? `<span class="dato">${ico("tope")}${esc(tope)}</span>` : ""}
     </div>
+    ${letraChica(d, tope)}
     ${d.condicion ? `<div class="cond">${ico("tarjeta")}${esc(d.condicion)}</div>` : ""}
+    ${comparativa(d)}
     ${locs.length && variaPorLocal(d, state.dia)
       ? `<div class="locales"><b>${soloEn()}</b> ${locs.map(nombreLocal).join(" · ")}</div>`
       : ""}
     <button class="enviar" type="button" data-banco="${esc(bco.id)}" data-comercio="${esc(d.comercio)}"
       title="Compartir" aria-label="Compartir ${esc(d.comercio)} por WhatsApp u otra app">${ico("enviar")}</button>
   </article>`;
+}
+
+// Badges de letra chica: lo que cambia lo que la persona recibe, a la vista.
+// Solo si el dato existe; nunca se supone.
+function letraChica(d, tope) {
+  const b = [];
+  if (tope) b.push(`<span class="lc lc-tope">${ico("tope")}${esc(tope[0].toUpperCase() + tope.slice(1))}</span>`);
+  const t = tarjetaExclusiva(d);
+  if (t) b.push(`<span class="lc lc-tarjeta">${ico("tarjeta")}${esc(t)}</span>`);
+  const c = canal(d);
+  if (c) b.push(`<span class="lc lc-canal">${ico("movil")}${esc(c)}</span>`);
+  return b.length ? `<div class="letra">${b.join("")}</div>` : "";
+}
+
+// "También hoy con: Scotiabank 50% · BICE 40%". Si otro banco da más, se
+// destaca: es lo primero que quiere saber quien tiene varias tarjetas.
+function comparativa(d) {
+  const otros = state.otros ? state.otros(d) : [];
+  if (!otros.length) return "";
+  const mejor = otros[0].pct > d.pct ? otros[0] : null;
+  return `<div class="compara">${mejor
+      ? `<b>Más con ${esc(mejor.banco)}: ${mejor.pct}%</b>`
+      : "<b>También hoy:</b>"} ${otros.filter(o => o !== mejor)
+      .map(o => `${esc(o.banco)} ${o.pct}%`).join(" · ")}</div>`;
 }
 
 function esc(s) {
@@ -667,9 +808,32 @@ async function init() {
   addEventListener("scroll", () => {
     arriba.hidden = scrollY < 1400 || state.vista === "mapa";
   }, { passive: true });
-  document.getElementById("comuna").addEventListener("change", e => {
-    state.comuna = e.target.value; render();
+  // Comunas: desplegable con casillas. Cierra al tocar fuera o con Esc.
+  const dd = document.getElementById("comuna-dd");
+  document.getElementById("comuna-lista").addEventListener("change", e => {
+    if (!e.target.matches("input[type=checkbox]")) return;
+    if (e.target.checked) state.comunas.add(e.target.value);
+    else state.comunas.delete(e.target.value);
+    guardarComunas(); render();
   });
+  document.getElementById("comuna-limpiar").onclick = () => {
+    state.comunas.clear(); guardarComunas(); render();
+  };
+  document.addEventListener("click", e => { if (dd.open && !dd.contains(e.target)) dd.open = false; });
+  dd.addEventListener("keydown", e => { if (e.key === "Escape") { dd.open = false; dd.querySelector("summary").focus(); } });
+  // Filtros rápidos.
+  document.getElementById("rapidos").addEventListener("click", e => {
+    const b = e.target.closest(".rapido");
+    if (!b) return;
+    if (b.dataset.min) state.min = state.min === +b.dataset.min ? 0 : +b.dataset.min;
+    else state.modo = state.modo === b.dataset.modo ? "" : b.dataset.modo;
+    render();
+  });
+  document.getElementById("bancos-todos").onclick = () => {
+    state.bancos = new Set(BANCOS.map(b => b.nombre));
+    state.bancosGuardados = false;
+    guardarBancos(); render();
+  };
   document.getElementById("ver-lista").onclick = () => { state.vista = "lista"; render(); };
   document.getElementById("ver-mapa").onclick = () => { state.vista = "mapa"; render(); };
   document.getElementById("btn-ubicacion").onclick = ubicar;
