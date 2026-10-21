@@ -55,7 +55,7 @@
       <a class="top-ig" href="https://www.instagram.com/descuentos.bancos.cl/" target="_blank" rel="noopener" aria-label="Instagram @descuentos.bancos.cl">
         <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><path d="M17.5 6.5h.01"/></svg><span>Instagram</span>
       </a>
-      <a class="top-link" id="cta-top" href="https://docs.google.com/forms/d/e/1FAIpQLScfOH3mzOrMN5hBaX74k2IFxHrfxanplOuyTMGKnz-a6hTYDA/viewform" target="_blank" rel="noopener">Correo diario gratis</a>
+      <a class="top-link" id="cta-top" href="#suscribir">Correo diario gratis</a>
     </div>
   </div>
 </header>
@@ -70,9 +70,12 @@
         BCI, Santander, Scotiabank, Itaú y BICE</b>, juntos y filtrados por día.
       </p>
       <div class="hero-acciones">
-        <a class="btn-cta" id="cta-form" href="https://docs.google.com/forms/d/e/1FAIpQLScfOH3mzOrMN5hBaX74k2IFxHrfxanplOuyTMGKnz-a6hTYDA/viewform" target="_blank" rel="noopener">
-          Recíbelo cada mañana en tu correo
-        </a>
+        <form class="sub-form" data-origen="hero" novalidate>
+          <input type="email" name="correo" required placeholder="tu@correo.cl" autocomplete="email" inputmode="email" aria-label="Tu correo">
+          <input type="text" name="nombre" placeholder="Nombre (opcional)" autocomplete="given-name" aria-label="Tu nombre (opcional)">
+          <button class="btn-cta" type="submit">Recíbelo cada mañana</button>
+          <p class="sub-msg" role="status" hidden></p>
+        </form>
         <button class="btn-sec" id="compartir" type="button">
           <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.6 13.5 6.8 4M15.4 6.5l-6.8 4"/></svg>
           Compartir
@@ -161,12 +164,17 @@
     </ol>
   </section>
 
-  <section class="suscribir">
+  <section class="suscribir" id="suscribir">
     <div>
       <h2>¿Prefieres no entrar todos los días?</h2>
       <p>Cada mañana (~10:05) te llega <b>gratis</b> el resumen del día a tu correo.</p>
     </div>
-    <a class="btn-cta" id="cta-form-2" href="https://docs.google.com/forms/d/e/1FAIpQLScfOH3mzOrMN5hBaX74k2IFxHrfxanplOuyTMGKnz-a6hTYDA/viewform" target="_blank" rel="noopener">Suscribirme al correo diario</a>
+    <form class="sub-form" data-origen="pie" novalidate>
+          <input type="email" name="correo" required placeholder="tu@correo.cl" autocomplete="email" inputmode="email" aria-label="Tu correo">
+          <input type="text" name="nombre" placeholder="Nombre (opcional)" autocomplete="given-name" aria-label="Tu nombre (opcional)">
+          <button class="btn-cta" type="submit">Suscribirme</button>
+          <p class="sub-msg" role="status" hidden></p>
+        </form>
   </section>
 
 </main>

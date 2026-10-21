@@ -1126,3 +1126,28 @@ body {
   font-size: 12.5px; color: var(--text-2);
 }
 .compara b { color: var(--text); }
+
+/* Suscripción integrada (sin salir a Google Forms). */
+.sub-form { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; flex: 1 1 100%; max-width: 620px; }
+.sub-form input {
+  font: inherit; font-size: 15px; height: 48px; padding: 0 18px; min-width: 0;
+  border-radius: 999px; border: 1px solid var(--border-fuerte); background: var(--surface); color: var(--text);
+}
+.sub-form input[name=correo] { flex: 1 1 200px; }
+.sub-form input[name=nombre] { flex: 0 1 170px; }
+.sub-form input:focus { outline: none; border-color: var(--acento); box-shadow: 0 0 0 3.5px var(--acento-suave); }
+.sub-form .btn-cta { border: 0; cursor: pointer; font-family: inherit; height: 48px; padding: 0 22px; }
+.sub-form .btn-cta:disabled { opacity: .6; cursor: default; transform: none; }
+.sub-form.listo input, .sub-form.listo .btn-cta { display: none; }
+.sub-msg { flex-basis: 100%; margin: 2px 4px 0; font-size: 14px; line-height: 1.4; color: var(--text-2); }
+.sub-msg.error { color: #b3261e; }
+.sub-msg a { color: inherit; font-weight: 750; }
+/* En el bloque amarillo los campos van con borde de tinta. */
+.suscribir .sub-form { flex: 1 1 380px; }
+.suscribir .sub-form input { border-color: rgba(0, 0, 0, .25); background: #fff; color: #121412; }
+.suscribir .sub-msg { color: var(--en-oferta); }
+@media (prefers-color-scheme: dark) { .sub-msg.error { color: #ff8a80; } }
+@media (max-width: 600px) {
+  .sub-form input[name=correo], .sub-form input[name=nombre] { flex: 1 1 100%; }
+  .sub-form .btn-cta { flex: 1 1 100%; justify-content: center; }
+}

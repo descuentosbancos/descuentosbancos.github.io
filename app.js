@@ -48,6 +48,12 @@ const TILES = {
 const TILES_ATTR = '&copy; <a href="https://www.esri.com">Esri</a>';
 const temaOscuro = () => matchMedia("(prefers-color-scheme: dark)").matches;
 const FORM_URL = "https://docs.google.com/forms/d/e/1FAIpQLScfOH3mzOrMN5hBaX74k2IFxHrfxanplOuyTMGKnz-a6hTYDA/viewform";
+// Envío directo al mismo Google Form (sin salir de la página). Los dos campos
+// son obligatorios en el Form; sin nombre se manda la parte antes de la @.
+// La planilla de respuestas la lee import_form.py (repo de datos) cada hora
+// y manda la bienvenida.
+const FORM_POST = FORM_URL.replace("/viewform", "/formResponse");
+const ENTRY = { nombre: "entry.1934786758", correo: "entry.1216821569" };
 const DIAS = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
 const DIA_LARGO = ["lunes", "martes", "miércoles", "jueves", "viernes",
                    "sábado", "domingo"];
@@ -242,15 +248,37 @@ function visibles(todosLosBancos = false) {
 // ?d=5&b=santander,itau&c=Providencia&q=sushi&v=mapa — así un filtro se
 // puede compartir por WhatsApp y sobrevive a recargar. Solo se escribe lo
 // que difiere de lo por defecto, para que la URL limpia siga siendo "/".
+// Nombres largos y apodos también sirven en un link armado a mano:
+// ?bancos=cmr,chile&comuna=providencia&dia=viernes (los cortos siguen siendo
+// b, c y d, que es lo que el sitio escribe).
+const APODO_BANCO = { cmr: "falabella", "banco-de-chile": "chile", "banco-chile": "chile",
+                      edwards: "chile", scotia: "scotiabank", itau: "itau" };
+function diaDeParam(v) {
+  if (!v) return 0;
+  if (norm(v) === "hoy") return diaSantiago();
+  const n = parseInt(v, 10);
+  if (n >= 1 && n <= 7) return n;
+  // "sábados", "domingos" también valen; "viernes" o "lunes" ya terminan en s.
+  const i = DIA_LARGO.findIndex(x => norm(x) === norm(v) || norm(x) === norm(v).replace(/s$/, ""));
+  return i >= 0 ? i + 1 : 0;
+}
 function leerURL() {
   const p = new URLSearchParams(location.search);
-  const d = parseInt(p.get("d"), 10);
-  if (d >= 1 && d <= 7) state.dia = d;
-  const ids = (p.get("b") || "").split(",").filter(Boolean);
+  const d = diaDeParam(p.get("d") || p.get("dia"));
+  if (d) state.dia = d;
+  const ids = (p.get("b") || p.get("bancos") || "").split(",").map(x => norm(x.trim()))
+    .filter(Boolean).map(x => APODO_BANCO[x] || x);
   const elegidos = BANCOS.filter(b => ids.includes(b.id)).map(b => b.nombre);
   if (elegidos.length) state.bancos = new Set(elegidos);
   // render() descarta las comunas que no aplican el día elegido.
-  if (p.get("c")) state.comunas = new Set(p.get("c").split(",").filter(Boolean));
+  // La comuna se compara sin tildes ni mayúsculas ("nunoa" = "Ñuñoa"); render()
+  // la ajusta al nombre exacto y descarta las que no aplican ese día.
+  const cParam = p.get("c") || p.get("comuna");
+  if (cParam) {
+    const todas = [...new Set(state.data.flatMap(x => x.comunas || []))];
+    state.comunas = new Set(cParam.split(",").map(x => x.trim()).filter(Boolean)
+      .map(x => todas.find(t => norm(t) === norm(x)) || x));
+  }
   if (p.get("q")) state.q = p.get("q");
   if (p.get("v") === "mapa") state.vista = "mapa";
   const min = parseInt(p.get("m"), 10);
@@ -266,7 +294,7 @@ function leerURL() {
       state.bancosGuardados = true;
     }
   }
-  if (!p.get("c")) state.comunas = new Set(leerGuardado(GUARDA.comunas) || []);
+  if (!cParam) state.comunas = new Set(leerGuardado(GUARDA.comunas) || []);
 }
 function escribirURL() {
   const p = new URLSearchParams();
@@ -732,7 +760,7 @@ function card(d, bco) {
       ? `<div class="locales"><b>${soloEn()}</b> ${locs.map(nombreLocal).join(" · ")}</div>`
       : ""}
     <button class="enviar" type="button" data-banco="${esc(bco.id)}" data-comercio="${esc(d.comercio)}"
-      title="Compartir" aria-label="Compartir ${esc(d.comercio)} por WhatsApp u otra app">${ico("enviar")}</button>
+      title="Compartir por WhatsApp" aria-label="Compartir ${esc(d.comercio)} por WhatsApp">${ico("enviar")}</button>
   </article>`;
 }
 
@@ -768,9 +796,38 @@ function esc(s) {
 }
 
 async function init() {
-  document.getElementById("cta-form").href = FORM_URL;
-  document.getElementById("cta-form-2").href = FORM_URL;
-  document.getElementById("cta-top").href = FORM_URL;
+  // Suscripción sin salir de la página. Con mode "no-cors" Google no deja
+  // leer la respuesta: si el envío no lanza error se da por hecho (y si la
+  // red falla, se ofrece el Form de siempre).
+  for (const f of document.querySelectorAll(".sub-form")) {
+    f.addEventListener("submit", async e => {
+      e.preventDefault();
+      const correo = f.correo.value.trim().toLowerCase();
+      const msg = f.querySelector(".sub-msg");
+      msg.hidden = false; msg.className = "sub-msg";
+      if (!/^[^\s@]+@[^\s@]+\.[a-z]{2,}$/i.test(correo)) {
+        msg.textContent = "Revisa tu correo: parece incompleto.";
+        msg.classList.add("error"); f.correo.focus();
+        return;
+      }
+      const nombre = f.nombre.value.trim() || correo.split("@")[0];
+      const btn = f.querySelector("button");
+      btn.disabled = true;
+      try {
+        await fetch(FORM_POST, {
+          method: "POST", mode: "no-cors",
+          body: new URLSearchParams({ [ENTRY.correo]: correo, [ENTRY.nombre]: nombre }),
+        });
+        f.classList.add("listo");
+        msg.innerHTML = `<b>¡Listo, ${esc(nombre)}!</b> En un rato te llega la bienvenida y desde ` +
+          `mañana el resumen a las 10:05. Si cae en Promociones, muévelo a Principal.`;
+      } catch (err) {
+        msg.innerHTML = `No pudimos enviarlo. <a href="${FORM_URL}" target="_blank" rel="noopener">Suscríbete acá</a>.`;
+        msg.classList.add("error");
+        btn.disabled = false;
+      }
+    });
+  }
   // Compartir: el menú nativo del teléfono (WhatsApp, Instagram...) y, si no
   // existe (computador), WhatsApp Web. Comparte la URL con los filtros
   // puestos, así llega "Santander el viernes" y no la portada.
@@ -795,13 +852,14 @@ async function init() {
     const p = new URLSearchParams({ b: btn.dataset.banco, q: d.comercio });
     if (state.dia !== diaSantiago()) p.set("d", state.dia);
     const url = location.origin + location.pathname + "?" + p;
-    const dias = d.dias_confirmados === false ? "" : ` (${dias_label(d.dias)})`;
-    const texto = `${d.pct}% en ${d.comercio} con ${d.banco}${dias}`;
-    if (navigator.share) {
-      try { await navigator.share({ title: d.comercio, text: texto, url }); } catch (e) { /* cancelado */ }
-    } else {
-      window.open("https://wa.me/?text=" + encodeURIComponent(texto + " " + url), "_blank", "noopener");
-    }
+    // WhatsApp directo: es por donde se arma el almuerzo. El mensaje dice el
+    // día, la comuna y el banco, que es lo que quien lo recibe necesita.
+    const cuando = state.dia === diaSantiago() ? "Hoy" : `El ${DIA_LARGO[state.dia - 1]}`;
+    const cs = comunasDelDia(d, state.dia);
+    const donde = cs.length ? ` (${cs.slice(0, 2).join(", ")})` : "";
+    const texto = `¡Oye! ${cuando} hay ${d.pct}% de dcto en ${d.comercio}${donde} pagando con ` +
+      `${d.banco}. Mira los detalles acá: ${url}`;
+    window.open("https://wa.me/?text=" + encodeURIComponent(texto), "_blank", "noopener");
   });
   const buscar = document.getElementById("buscar");
   buscar.addEventListener("input", e => {
