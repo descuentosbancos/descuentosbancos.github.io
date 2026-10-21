@@ -1116,6 +1116,8 @@ body {
 }
 .lc .ico { width: 12px; height: 12px; }
 .lc-tarjeta { background: var(--amber-bg); color: var(--amber-tx); }
+/* El horario cambia si el descuento sirve o no: el más visible. */
+.lc-hora { background: var(--text); color: var(--bg); }
 .lc-canal { background: color-mix(in srgb, var(--tinta) 12%, var(--surface)); color: var(--tinta); }
 
 /* El mismo local con otros bancos ese día. */

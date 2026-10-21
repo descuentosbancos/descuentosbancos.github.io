@@ -118,6 +118,19 @@ function tarjetaExclusiva(d) {
   const hay = PREMIUM.filter(k => new RegExp("\\b" + k + "\\b", "i").test(c));
   return hay.length ? "Solo " + hay.join("/") : "";
 }
+// Restricción horaria que el repo de datos agrega a la condición ("de 13:00
+// a 23:00", "desde las 19:00", "hasta 16:00"): quien llega a almorzar a un
+// descuento que parte a las 19:00 se queda sin él.
+function horario(d) {
+  const c = d.condicion || "";
+  let m = c.match(/de (\d{1,2}:\d{2}) a (\d{1,2}:\d{2})/);
+  if (m) return `De ${m[1]} a ${m[2]}`;
+  m = c.match(/desde las (\d{1,2}:\d{2})/);
+  if (m) return `Desde las ${m[1]}`;
+  m = c.match(/hasta (?:las )?(\d{1,2}:\d{2})/);
+  if (m) return `Hasta las ${m[1]}`;
+  return "";
+}
 function canal(d) {
   const c = d.condicion || "";
   if (/v[ií]a justo/i.test(c)) return "Pide por Justo";
@@ -727,6 +740,8 @@ function card(d, bco) {
 // Solo si el dato existe; nunca se supone.
 function letraChica(d, tope) {
   const b = [];
+  const h = horario(d);
+  if (h) b.push(`<span class="lc lc-hora">${ico("reloj")}${esc(h)}</span>`);
   if (tope) b.push(`<span class="lc lc-tope">${ico("tope")}${esc(tope[0].toUpperCase() + tope.slice(1))}</span>`);
   const t = tarjetaExclusiva(d);
   if (t) b.push(`<span class="lc lc-tarjeta">${ico("tarjeta")}${esc(t)}</span>`);
