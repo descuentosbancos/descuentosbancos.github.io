@@ -59,7 +59,15 @@ const DIAS = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
 const DIA_LARGO = ["lunes", "martes", "miércoles", "jueves", "viernes",
                    "sábado", "domingo"];
 const EMOJI = { delivery: "🍕", restaurante: "🍽️", cafe: "☕", supermercado: "🛒" };
-const MAX_POR_BANCO = 24; // la web tiene más espacio que el correo
+// Por banco se muestran hasta 5 filas de tarjetas (5 columnas en escritorio:
+// 25; en celular, una columna: 5) y el resto tras "Ver las N".
+const FILAS_POR_BANCO = 5;
+function columnas() {
+  const g = document.querySelector("#resultado .grid");
+  // Grilla oculta (vista mapa): no hay medidas en px; se supone 5.
+  const n = g ? getComputedStyle(g).gridTemplateColumns.split(" ").filter(x => /px$/.test(x)).length : 0;
+  return n || 5;
+}
 
 // Casi todo es restaurante: repetir 🍽️ en cada tarjeta era ruido. El emoji
 // solo aparece cuando dice algo (café, delivery, súper).
@@ -512,6 +520,10 @@ function render() {
 
   // Listado por banco
   const res = document.getElementById("resultado");
+  // Columnas que tiene hoy la grilla (antes de borrarla); la primera vez no
+  // hay grilla y se supone 5, y se corrige al final si eran otras.
+  const cols = columnas();
+  const maxPorBanco = cols * FILAS_POR_BANCO;
   res.innerHTML = "";
   let alguno = false;
   for (const bco of BANCOS) {
@@ -520,7 +532,7 @@ function render() {
     alguno = true;
     const total = todas.length;
     const abierto = state.expandidos.has(bco.nombre);
-    const del = abierto ? todas : todas.slice(0, MAX_POR_BANCO);
+    const del = abierto ? todas : todas.slice(0, maxPorBanco);
     const sec = document.createElement("section");
     sec.className = "banco-sec";
     sec.id = "banco-" + bco.nombre.toLowerCase().replace(/[^a-z]+/g, "-");
@@ -535,7 +547,7 @@ function render() {
       <div class="grid">
         ${del.map(d => card(d, bco)).join("")}
       </div>
-      ${total > MAX_POR_BANCO
+      ${total > maxPorBanco
         ? `<button class="mas">${abierto ? "Ver menos" : `Ver las ${total} de ${esc(bco.nombre)}`}</button>`
         : ""}`;
     const mas = sec.querySelector(".mas");
@@ -579,6 +591,9 @@ function render() {
     b.classList.toggle("activo", on);
     b.setAttribute("aria-pressed", on ? "true" : "false");
   }
+  // Ya visible la lista: si la grilla tiene otras columnas que las supuestas,
+  // se rearma con el tope correcto (5 filas).
+  if (!enMapa && alguno && columnas() !== cols) return render();
   if (enMapa) renderMapa(items);
   escribirURL();
 }
@@ -947,6 +962,12 @@ async function init() {
   buscar.value = state.q;
   render();
   centrarTabActiva();
+  // Al cambiar el ancho cambian las columnas, y con ellas cuántas caben en 5 filas.
+  let colsPrevias = columnas();
+  addEventListener("resize", () => {
+    const c = columnas();
+    if (c !== colsPrevias) { colsPrevias = c; render(); }
+  });
 }
 
 init();

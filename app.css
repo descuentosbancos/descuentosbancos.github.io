@@ -638,7 +638,8 @@ body {
 
 .grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  /* 5 columnas en el ancho máximo del sitio (1180px). */
+  grid-template-columns: repeat(auto-fill, minmax(205px, 1fr));
   gap: 12px;
 }
 
