@@ -13,6 +13,7 @@ const BANCOS = [
   { id: "bice", nombre: "BICE",           color: "#004B8D", pin: "#004B8D", url: "https://www.bice.cl/personas/beneficios" },
   // Rojo más oscuro que Santander para distinguirlos en chips y pines.
   { id: "scotiabank", nombre: "Scotiabank", color: "#B4122B", pin: "#9A0F25", url: "https://www.scotiarewards.cl/scclubfront/categoria/platosycomida/rutagourmet" },
+  { id: "ripley", nombre: "Banco Ripley", color: "#5F2C82", pin: "#5F2C82", url: "https://www.bancoripley.cl/beneficios-y-promociones" },
 ];
 
 // Base del mapa: Esri Canvas (gris neutro) en vez de OpenStreetMap crudo. El
