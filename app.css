@@ -1151,3 +1151,8 @@ body {
   .sub-form input[name=correo], .sub-form input[name=nombre] { flex: 1 1 100%; }
   .sub-form .btn-cta { flex: 1 1 100%; justify-content: center; }
 }
+
+/* Enlaces a las páginas por comuna y banco (los escribe paginas_web.py). */
+.seo-enlaces { margin: 40px 0 8px; }
+.seo-enlaces ul { display: flex; flex-wrap: wrap; gap: 8px 14px; list-style: none; padding: 0; margin: 10px 0 22px; }
+.seo-enlaces a { color: var(--text-2); font-weight: 600; font-size: 14.5px; }
