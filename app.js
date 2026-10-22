@@ -307,6 +307,11 @@ function escribirURL() {
   if (state.modo) p.set("t", state.modo);
   if (state.q.trim()) p.set("q", state.q.trim());
   if (state.vista === "mapa") p.set("v", "mapa");
+  // De dónde vino la visita (?ref=correo, utm_*): se conserva para que las
+  // estadísticas lo lean aunque el sitio reescriba la URL con los filtros.
+  for (const [k, v] of new URLSearchParams(location.search)) {
+    if (k === "ref" || k.startsWith("utm_")) p.set(k, v);
+  }
   const qs = p.toString();
   const url = location.pathname + (qs ? "?" + qs : "") + location.hash;
   if (url !== location.pathname + location.search + location.hash) {
@@ -790,6 +795,12 @@ function comparativa(d) {
       .map(o => `${esc(o.banco)} ${o.pct}%`).join(" · ")}</div>`;
 }
 
+// Evento para las estadísticas (GoatCounter). Si el script no cargó o lo
+// bloquea un adblock, no pasa nada.
+function evento(nombre) {
+  try { window.goatcounter?.count?.({ path: nombre, title: nombre, event: true }); } catch (e) { /* sin estadísticas */ }
+}
+
 function esc(s) {
   return String(s).replace(/[&<>"']/g, c =>
     ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -819,6 +830,7 @@ async function init() {
           body: new URLSearchParams({ [ENTRY.correo]: correo, [ENTRY.nombre]: nombre }),
         });
         f.classList.add("listo");
+        evento("suscripcion-" + (f.dataset.origen || "web"));
         msg.innerHTML = `<b>¡Listo, ${esc(nombre)}!</b> En un rato te llega la bienvenida y desde ` +
           `mañana el resumen a las 10:05. Si cae en Promociones, muévelo a Principal.`;
       } catch (err) {
@@ -831,7 +843,13 @@ async function init() {
   // Compartir: el menú nativo del teléfono (WhatsApp, Instagram...) y, si no
   // existe (computador), WhatsApp Web. Comparte la URL con los filtros
   // puestos, así llega "Santander el viernes" y no la portada.
+  // Clic a la ficha del banco: la oferta le interesó a alguien.
+  document.addEventListener("click", e => {
+    const a = e.target.closest("a.nom, a.dest, .pl-primario");
+    if (a) evento("ver-oferta");
+  });
   document.getElementById("compartir").onclick = async () => {
+    evento("compartir-sitio");
     const url = location.href;
     const texto = "Mira dónde comer con descuento hoy en Santiago 🍽️";
     if (navigator.share) {
@@ -859,6 +877,7 @@ async function init() {
     const donde = cs.length ? ` (${cs.slice(0, 2).join(", ")})` : "";
     const texto = `¡Oye! ${cuando} hay ${d.pct}% de dcto en ${d.comercio}${donde} pagando con ` +
       `${d.banco}. Mira los detalles acá: ${url}`;
+    evento("whatsapp-oferta");
     window.open("https://wa.me/?text=" + encodeURIComponent(texto), "_blank", "noopener");
   });
   const buscar = document.getElementById("buscar");
