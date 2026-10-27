@@ -1186,3 +1186,7 @@ body {
 .seo-enlaces { margin: 40px 0 8px; }
 .seo-enlaces ul { display: flex; flex-wrap: wrap; gap: 8px 14px; list-style: none; padding: 0; margin: 10px 0 22px; }
 .seo-enlaces a { color: var(--text-2); font-weight: 600; font-size: 14.5px; }
+
+/* Foto del local en el popup del mapa (misma que la tarjeta). */
+.pop-foto { display: block; width: calc(100% + 30px); min-width: 230px; height: auto; aspect-ratio: 16 / 9; object-fit: cover;
+            margin: -14px -15px 10px; border-radius: var(--r-md) var(--r-md) 0 0; background: var(--border); }

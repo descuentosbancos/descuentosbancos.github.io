@@ -785,6 +785,8 @@ function popup(d, bco) {
     ? `<a class="pl-primario" style="background:${bco.pin}" href="${esc(d.url)}" target="_blank" rel="noopener">Ver oferta →</a>`
     : "";
   return `<div class="pop">
+    ${d.img ? `<img class="pop-foto" src="${esc(foto(d.img))}" alt="" width="640" height="360"
+      referrerpolicy="no-referrer" onerror="this.remove()">` : ""}
     <div class="pop-top">
       <div class="pop-pct" style="color:${bco.pin}">${d.pct}<i>%</i></div>
       <div>
