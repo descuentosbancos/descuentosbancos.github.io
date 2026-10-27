@@ -131,6 +131,15 @@
 
 <main class="wrap">
 
+  <!-- Entrada al mapa (solo en la vista lista) -->
+  <button type="button" class="mapa-preview" id="mapa-preview" hidden>
+    <span class="mp-pin" aria-hidden="true"><svg class="ico" viewBox="0 0 24 24"><path d="M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg></span>
+    <span class="mp-txt"><b>Ver en el mapa</b><span id="mapa-preview-n">Los locales cerca de ti</span></span>
+  </button>
+
+  <!-- Tipo de comida y favoritos -->
+  <nav class="cats" id="cats" aria-label="Tipo de comida"></nav>
+
   <!-- Vista mapa -->
   <section id="mapa-vista" hidden>
     <div class="mapa-barra">

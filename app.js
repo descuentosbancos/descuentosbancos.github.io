@@ -75,14 +75,54 @@ const VECTOR_TIMEOUT = 8000;
 // Algunos bancos (BICE) solo publican el LOGO del local: ese va entero sobre
 // blanco (recortado a 16:9 quedaba ilegible), no como foto.
 const esLogo = url => /logo/i.test(url.split("?")[0].split("/").pop());
+// Tipo de comida (lo calcula tipos.py del lado de los datos) con su nombre
+// en la fila de categorías y 3 fotos genéricas para los locales cuyo banco
+// no publica foto (o solo publica el logo). Fotos de Unsplash (licencia
+// libre, se enlazan desde su CDN); van marcadas "Foto referencial".
+const U = id => `https://images.unsplash.com/photo-${id}?w=640&h=360&fit=crop&auto=format&q=70`;
+const TIPOS = {
+  pizza:    { nombre: "Pizza", ico: "🍕", fotos: ["1513104890138-7c749659a591", "1565299624946-b28f40a0ae38", "1604382354936-07c5d9983bd3"] },
+  asiatica: { nombre: "Sushi y asiática", ico: "🍣", fotos: ["1579584425555-c3ce17fd4351", "1579871494447-9811cf80d66c", "1553621042-f6e147245754"] },
+  rapida:   { nombre: "Hamburguesas y rápida", ico: "🍔", fotos: ["1568901346375-23c9450c58cd", "1586190848861-99aa4a171e90", "1572802419224-296b0aeee0d9"] },
+  carnes:   { nombre: "Carnes y parrilla", ico: "🥩", fotos: ["1508615263227-c5d58c1e5821", "1614119068601-483274e9dcb7", "1546964124-0cce460f38ef"] },
+  cafe:     { nombre: "Café y dulces", ico: "☕", fotos: ["1515823662972-da6a2e4d3002", "1467189386127-c4e5e31ee213", "1591538001662-0d5a25234305"] },
+  mexicana: { nombre: "Mexicana", ico: "🌮", fotos: ["1599974579688-8dbdd335c77f", "1565299585323-38d6b0865b47", "1551504734-5ee1c4a1479b"] },
+  peruana:  { nombre: "Peruana", ico: "🍋", fotos: ["1535399831218-d5bd36d1a6b3", "1731570225640-7ddad4231679", "1664992915025-e5e4bbd67fe1"] },
+  italiana: { nombre: "Italiana", ico: "🍝", fotos: ["1621996346565-e3dbc646d9a9", "1611270629569-8b357cb88da9", "1608897013039-887f21d8c804"] },
+  mariscos: { nombre: "Pescados y mariscos", ico: "🦐", fotos: ["1571167366136-b57e07761625", "1578935149228-66b184c83e69", "1618055301293-494ab4c71f9f"] },
+  bar:      { nombre: "Bar", ico: "🍸", fotos: ["1566417713940-fe7c737a9ef2", "1572116469696-31de0f17cc34", "1568644396922-5c3bfae12521"] },
+  restaurante: { nombre: "Restaurante", ico: "🍽️", fotos: ["1574966739987-65e38db0f7ce", "1565895405140-6b9830a88c19", "1593515463811-63535505f44a"] },
+};
+const tipoDe = d => (TIPOS[d.tipo] ? d.tipo : "restaurante");
+const claveFav = d => `${d.banco}|${d.comercio}`;
+// Siempre la misma de las 3 para un local (no cambia al recargar).
+function fotoGenerica(d) {
+  const fs = TIPOS[tipoDe(d)].fotos;
+  let h = 0;
+  for (const c of d.comercio) h = (h * 31 + c.charCodeAt(0)) >>> 0;
+  return U(fs[h % fs.length]);
+}
+// Días que le quedan a la oferta (0 = hoy es el último); null sin vigencia.
+function diasRestantes(d) {
+  if (!d.vigencia) return null;
+  return Math.round((Date.parse(d.vigencia) - Date.parse(hoyISOSantiago())) / 864e5);
+}
+
 // Si el proxy falla (itaubeneficios.cl le responde 403 a wsrv), se intenta
 // una vez la imagen original del banco antes de dejar la tarjeta sin foto.
 function sinFoto(img, quitar) {
-  if (img.dataset.orig && img.src !== img.dataset.orig) {
+  if (img.dataset.orig) {
     img.src = img.dataset.orig;
     img.dataset.orig = "";
+  } else if (img.dataset.gen) {
+    // Ni el proxy ni el banco: foto genérica de su tipo, marcada como tal.
+    img.src = img.dataset.gen;
+    img.dataset.gen = "";
+    img.parentNode.classList.add("generica");
   } else quitar();
 }
+const logoChico = url => "https://wsrv.nl/?url=" + encodeURIComponent(url) +
+  "&w=200&h=200&fit=contain&cbg=ffffff&output=webp&q=80";
 const foto = url => "https://wsrv.nl/?url=" + encodeURIComponent(url) +
   (esLogo(url) ? "&w=640&h=360&fit=contain&cbg=ffffff&output=webp&q=80"
                : "&w=640&h=360&fit=cover&a=attention&output=webp&q=72");
@@ -123,6 +163,7 @@ const ICO = {
   tarjeta: '<rect x="2.5" y="5" width="19" height="14" rx="2.5"/><path d="M2.5 10h19M6.5 15h4"/>',
   reloj: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.2 2"/>',
   enviar: '<path d="M21 3 10 14M21 3l-7 18-4-7-7-4 18-7z"/>',
+  corazon: '<path d="M12 20.5s-7.5-4.6-9.2-9.4C1.6 7.6 3.9 4.5 7.2 4.5c2 0 3.5 1.1 4.8 2.9 1.3-1.8 2.8-2.9 4.8-2.9 3.3 0 5.6 3.1 4.4 6.6-1.7 4.8-9.2 9.4-9.2 9.4z"/>',
   movil: '<rect x="6.5" y="2.5" width="11" height="19" rx="2.5"/><path d="M11 18h2"/>',
 };
 const ico = k => `<svg class="ico" viewBox="0 0 24 24" aria-hidden="true">${ICO[k]}</svg>`;
@@ -135,12 +176,15 @@ const state = {
   modo: "",               // "" | "presencial" | "delivery"
   bancosGuardados: false, // la selección de bancos vino del navegador
   expandidos: new Set(),  // bancos con "ver todas" abierto
+  tipo: "",               // categoría de comida ("pizza", "cafe"...); "" = todas
+  soloFavs: false,        // mostrar solo los favoritos
+  favs: new Set(),        // "banco|comercio" marcados con el corazón
 };
 
 // ---------- Preferencias guardadas (localStorage) ----------
 // Solo comodidad de quien visita: si el navegador bloquea el almacenamiento
 // (modo privado, Safari estricto) el sitio funciona igual, sin recordar.
-const GUARDA = { bancos: "db.bancos", comunas: "db.comunas" };
+const GUARDA = { bancos: "db.bancos", comunas: "db.comunas", favs: "db.favs" };
 function leerGuardado(k) {
   try { return JSON.parse(localStorage.getItem(k) || "null"); } catch (e) { return null; }
 }
@@ -273,7 +317,7 @@ function norm(t) {
   return String(t).normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
 }
 
-function visibles(todosLosBancos = false) {
+function visibles(todosLosBancos = false, sinTipo = false) {
   const hoy = hoyISOSantiago();
   const q = norm(state.q.trim());
   return state.data.filter(d =>
@@ -285,6 +329,8 @@ function visibles(todosLosBancos = false) {
     (!state.comunas.size || comunasDelDia(d, state.dia).some(c => state.comunas.has(c))) &&
     d.pct >= state.min &&
     (!state.modo || (state.modo === "delivery") === esDelivery(d)) &&
+    (sinTipo || !state.tipo || tipoDe(d) === state.tipo) &&
+    (!state.soloFavs || state.favs.has(claveFav(d))) &&
     // El buscador también encuentra por comuna ("ñuñoa", "providencia"),
     // con las comunas donde vale ESE día.
     (!q || norm(d.comercio).includes(q) ||
@@ -332,6 +378,9 @@ function leerURL() {
   const min = parseInt(p.get("m"), 10);
   if (min === 30 || min === 40) state.min = min;
   if (["presencial", "delivery"].includes(p.get("t"))) state.modo = p.get("t");
+  if (TIPOS[p.get("cat")]) state.tipo = p.get("cat");
+  state.favs = new Set(leerGuardado(GUARDA.favs) || []);
+  if (p.get("fav") === "1" && state.favs.size) state.soloFavs = true;
   // Lo guardado en el navegador aplica solo si el link no trae ese filtro:
   // un link compartido muestra lo que se quiso compartir.
   if (!elegidos.length) {
@@ -353,6 +402,8 @@ function escribirURL() {
   if (state.comunas.size) p.set("c", [...state.comunas].join(","));
   if (state.min) p.set("m", state.min);
   if (state.modo) p.set("t", state.modo);
+  if (state.tipo) p.set("cat", state.tipo);
+  if (state.soloFavs) p.set("fav", "1");
   if (state.q.trim()) p.set("q", state.q.trim());
   if (state.vista === "mapa") p.set("v", "mapa");
   // De dónde vino la visita (?ref=correo, utm_*): se conserva para que las
@@ -480,6 +531,31 @@ function render() {
     b.setAttribute("aria-pressed", on ? "true" : "false");
   }
 
+  // Tipo de comida: una fila deslizable con cuántas hay de cada uno (con los
+  // demás filtros puestos). Uno a la vez; tocar el activo vuelve a "Todo".
+  // "Mis favoritos" aparece primero cuando hay alguno guardado.
+  const sinTipo = visibles(false, true);
+  const porTipo = {};
+  for (const d of sinTipo) porTipo[tipoDe(d)] = (porTipo[tipoDe(d)] || 0) + 1;
+  if (state.tipo && !porTipo[state.tipo]) state.tipo = "";
+  const nFavs = state.data.filter(d => state.favs.has(claveFav(d)) && d.dias.includes(state.dia)).length;
+  const cats = document.getElementById("cats");
+  cats.innerHTML =
+    (state.favs.size ? `<button type="button" class="cat cat-fav${state.soloFavs ? " activo" : ""}" data-fav="1"
+      aria-pressed="${state.soloFavs}">${ico("corazon")}Mis favoritos <span class="n">${nFavs}</span></button>` : "") +
+    `<button type="button" class="cat${!state.tipo ? " activo" : ""}" data-tipo="" aria-pressed="${!state.tipo}">Todo</button>` +
+    Object.entries(TIPOS).filter(([k]) => porTipo[k] && k !== "restaurante")
+      .map(([k, t]) => `<button type="button" class="cat${state.tipo === k ? " activo" : ""}" data-tipo="${k}"
+        aria-pressed="${state.tipo === k}"><span aria-hidden="true">${t.ico}</span>${t.nombre} <span class="n">${porTipo[k]}</span></button>`)
+      .join("");
+
+  // Entrada al mapa desde la lista, con cuántos locales tienen ubicación.
+  const conGeoN = items.filter(d => typeof d.lat === "number").length;
+  const mp = document.getElementById("mapa-preview");
+  mp.hidden = state.vista === "mapa" || !conGeoN;
+  document.getElementById("mapa-preview-n").textContent =
+    `${conGeoN} ${conGeoN === 1 ? "local" : "locales"} con ubicación · encuentra el más cercano`;
+
   // "Mostrando tus bancos guardados": la selección vino del navegador, se
   // dice (si no, alguien cree que el sitio tiene solo esos bancos).
   const avisoB = document.getElementById("bancos-aviso");
@@ -600,6 +676,7 @@ function render() {
   }
   if (!alguno) {
     const filtrando = state.q || state.comunas.size || state.min || state.modo ||
+      state.tipo || state.soloFavs ||
       state.bancos.size < BANCOS.length;
     res.innerHTML = `<div class="vacio">
       ${filtrando
@@ -612,6 +689,7 @@ function render() {
     const limpiar = document.getElementById("limpiar");
     if (limpiar) limpiar.onclick = () => {
       state.q = ""; state.comunas.clear(); state.min = 0; state.modo = "";
+      state.tipo = ""; state.soloFavs = false;
       state.bancos = new Set(BANCOS.map(b => b.nombre));
       guardarBancos(); guardarComunas(); state.bancosGuardados = false;
       document.getElementById("buscar").value = "";
@@ -841,27 +919,42 @@ function ubicar() {
 }
 
 function card(d, bco) {
-  const hoy = hoyISOSantiago();
-  const ultimo = d.vigencia && d.vigencia === hoy;
+  const quedan = diasRestantes(d);
+  const ultimo = quedan === 0;
+  // Termina dentro de esta semana (pero no hoy: ese es "Último día").
+  const ultimaSemana = quedan !== null && quedan >= 1 && quedan <= 6;
   const tope = fmtTope(d);
   const link = esc(d.url || bco.url);
   const locs = localesDelDia(d, state.dia);
   const cs = comunasDelDia(d, state.dia);
-  // Foto del banco arriba, con el % como etiqueta encima. Si no carga, la
-  // tarjeta vuelve a ser la de siempre (el % sigue en la fila).
-  const img = d.img ? `<div class="foto${esLogo(d.img) ? " logo" : ""}" aria-hidden="true">
-      <img src="${esc(foto(d.img))}" alt="" loading="lazy" decoding="async" width="640" height="360"
-        referrerpolicy="no-referrer" data-orig="${esc(d.img)}" onerror="sinFoto(this, () => {this.closest('.cardo').classList.remove('con-foto');this.parentNode.remove()})">
+  // Foto del banco arriba, con el % como etiqueta encima. Sin foto (o si el
+  // banco solo publica el logo) va una genérica de su tipo de comida,
+  // marcada "Foto referencial", con el logo encima si lo hay. Si nada carga,
+  // la tarjeta vuelve a ser la de siempre (el % sigue en la fila).
+  const real = d.img && !esLogo(d.img);
+  const logo = d.img && esLogo(d.img);
+  const fav = state.favs.has(claveFav(d));
+  const img = `<div class="foto${real ? "" : " generica"}">
+      <img src="${esc(real ? foto(d.img) : fotoGenerica(d))}" alt="" loading="lazy" decoding="async"
+        width="640" height="360" referrerpolicy="no-referrer"
+        data-orig="${real ? esc(d.img) : ""}" data-gen="${real ? esc(fotoGenerica(d)) : ""}"
+        onerror="sinFoto(this, () => {this.closest('.cardo').classList.remove('con-foto');this.parentNode.remove()})">
+      ${logo ? `<span class="logo-local"><img src="${esc(logoChico(d.img))}" alt="" loading="lazy"
+        referrerpolicy="no-referrer" onerror="this.parentNode.remove()"></span>` : ""}
       <span class="etq"><span class="hasta">hasta</span>${d.pct}<i>%</i></span>
-    </div>` : "";
-  return `<article class="cardo${d.img ? " con-foto" : ""}" style="--bcolor:${bco.color}">
+    </div>`;
+  return `<article class="cardo con-foto" style="--bcolor:${bco.color}">
     ${img}
+    <button class="fav${fav ? " on" : ""}" type="button" data-fav="${esc(claveFav(d))}"
+      aria-pressed="${fav}" aria-label="${fav ? "Quitar de" : "Guardar en"} favoritos: ${esc(d.comercio)}"
+      title="${fav ? "Quitar de favoritos" : "Guardar en favoritos"}">${ico("corazon")}</button>
     <div class="fila">
       <a class="nom" href="${link}" target="_blank" rel="noopener">${sub(d)}${esc(d.comercio)}</a>
       <div class="pct"><span class="hasta">hasta</span><span class="num">${d.pct}<i>%</i></span></div>
     </div>
     <div class="meta">
       ${ultimo ? `<span class="dato ultimo">${ico("reloj")}Último día</span>` : ""}
+      ${ultimaSemana ? `<span class="dato ultimo semana">${ico("reloj")}Última semana</span>` : ""}
       ${d.dias_confirmados === false ? "" :
         `<span class="dato">${ico("dia")}${dias_label(d.dias)}</span>`}
       ${cs.length
@@ -990,6 +1083,30 @@ async function init() {
       `${d.banco}. Mira los detalles acá: ${url}`;
     evento("whatsapp-oferta");
     window.open("https://wa.me/?text=" + encodeURIComponent(texto), "_blank", "noopener");
+  });
+  // Favoritos: el corazón de la tarjeta. Se guardan en el navegador (sin
+  // cuenta); la fila de categorías ofrece "Mis favoritos" cuando hay alguno.
+  document.getElementById("resultado").addEventListener("click", e => {
+    const btn = e.target.closest(".fav");
+    if (!btn) return;
+    const k = btn.dataset.fav;
+    if (state.favs.has(k)) state.favs.delete(k); else { state.favs.add(k); evento("favorito"); }
+    guardar(GUARDA.favs, [...state.favs]);
+    if (!state.favs.size) state.soloFavs = false;
+    render();
+  });
+  document.getElementById("cats").addEventListener("click", e => {
+    const b = e.target.closest(".cat");
+    if (!b) return;
+    if (b.dataset.fav) state.soloFavs = !state.soloFavs;
+    else { state.tipo = state.tipo === b.dataset.tipo ? "" : b.dataset.tipo; if (state.tipo) evento("categoria-" + state.tipo); }
+    render();
+  });
+  document.getElementById("mapa-preview").addEventListener("click", () => {
+    state.vista = "mapa";
+    evento("mapa-preview");
+    render();
+    document.getElementById("mapa-vista").scrollIntoView({ behavior: "smooth", block: "start" });
   });
   const buscar = document.getElementById("buscar");
   buscar.addEventListener("input", e => {

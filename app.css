@@ -1193,3 +1193,81 @@ body {
 /* Foto del local en el popup del mapa (misma que la tarjeta). */
 .pop-foto { display: block; width: calc(100% + 30px); min-width: 230px; height: auto; aspect-ratio: 16 / 9; object-fit: cover;
             margin: -14px -15px 10px; border-radius: var(--r-md) var(--r-md) 0 0; background: var(--border); }
+
+/* ---------- Foto genérica, logo, favoritos (oct-2026) ---------- */
+/* Sin foto del banco: una de su tipo de comida, y se dice que es referencial. */
+.cardo .foto.generica::after {
+  content: "Foto referencial";
+  position: absolute; left: 10px; bottom: 8px;
+  font-size: 10.5px; font-weight: 700; letter-spacing: .02em;
+  color: #fff; background: rgba(0, 0, 0, .55);
+  padding: 2px 7px; border-radius: 999px;
+  backdrop-filter: blur(4px);
+}
+/* El logo (BICE solo publica eso) en una placa blanca sobre la foto. */
+.cardo .foto .logo-local {
+  position: absolute; left: 10px; top: 10px;
+  width: 52px; height: 52px; border-radius: 12px;
+  background: #fff; box-shadow: 0 2px 8px rgba(0, 0, 0, .25);
+  display: grid; place-items: center; overflow: hidden;
+}
+.cardo .foto .logo-local img { width: 100%; height: 100%; object-fit: contain; transform: none !important; }
+.cardo:hover .foto .logo-local img { transform: none; }
+/* Corazón: arriba a la derecha, encima del link que cubre la tarjeta. */
+.fav {
+  position: absolute; z-index: 1; right: 10px; top: 10px;
+  width: 34px; height: 34px; display: grid; place-items: center;
+  border: 0; border-radius: 999px; cursor: pointer;
+  color: #121412; background: rgba(255, 255, 255, .92);
+  box-shadow: 0 1px 6px rgba(0, 0, 0, .2);
+  transition: transform .15s ease, color .15s ease;
+}
+.fav .ico { width: 17px; height: 17px; stroke-width: 2.2; }
+.fav:hover { transform: scale(1.08); }
+.fav.on { color: #e0245e; }
+.fav.on .ico { fill: currentColor; }
+.cardo:not(.con-foto) .fav { position: static; justify-self: end; margin: -4px -4px 0 auto; order: -1; background: var(--surface-2); }
+.dato.ultimo.semana { background: var(--surface-2); color: var(--text); }
+
+/* ---------- Fila de tipos de comida ---------- */
+.cats {
+  display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none;
+  margin: 22px 0 4px; padding: 2px 0 4px;
+}
+.cats::-webkit-scrollbar { display: none; }
+.cat {
+  display: inline-flex; align-items: center; gap: 7px; flex-shrink: 0;
+  height: 38px; padding: 0 14px;
+  border: 1px solid var(--border); border-radius: 12px;
+  background: var(--surface); color: var(--text);
+  font: inherit; font-size: 13.5px; font-weight: 650; white-space: nowrap; cursor: pointer;
+  transition: border-color .15s ease, background .15s ease;
+}
+.cat .n { font-size: 11px; font-weight: 700; color: var(--muted); }
+.cat:hover { border-color: var(--text); }
+.cat.activo { background: var(--oferta); color: var(--en-oferta); border-color: transparent; }
+.cat.activo .n { color: inherit; opacity: .7; }
+.cat-fav .ico { width: 15px; height: 15px; color: #e0245e; fill: #e0245e; }
+
+/* ---------- Entrada al mapa desde la lista ---------- */
+.mapa-preview {
+  position: relative; display: flex; align-items: center; justify-content: center; gap: 14px;
+  width: 100%; height: 118px; margin-top: 26px;
+  border: 1px solid var(--border); border-radius: var(--r-md); overflow: hidden; cursor: pointer;
+  background: url("mapa-preview.webp") center / cover, var(--surface-2);
+  font: inherit; color: var(--text);
+  box-shadow: var(--sombra-1);
+}
+.mapa-preview::before { content: ""; position: absolute; inset: 0;
+  background: color-mix(in srgb, var(--bg) 35%, transparent); transition: background .2s ease; }
+.mapa-preview:hover::before { background: transparent; }
+.mapa-preview > * { position: relative; }
+.mp-pin { width: 46px; height: 46px; border-radius: 999px; display: grid; place-items: center;
+  background: var(--oferta); color: #121412; box-shadow: 0 4px 14px rgba(0, 0, 0, .25); }
+.mp-pin .ico { width: 24px; height: 24px; }
+.mp-txt { display: flex; flex-direction: column; text-align: left; padding: 8px 14px; border-radius: 12px;
+  background: color-mix(in srgb, var(--surface) 88%, transparent); backdrop-filter: blur(6px); }
+.mp-txt b { font-size: 16px; }
+.mp-txt span { font-size: 12.5px; color: var(--muted); }
+.mapa-preview::after { content: "© OpenStreetMap"; position: absolute; right: 8px; bottom: 5px;
+  font-size: 10px; color: var(--muted); }
