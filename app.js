@@ -47,6 +47,33 @@ const TILES = {
   },
 };
 const TILES_ATTR = '&copy; <a href="https://www.esri.com">Esri</a>';
+
+// Mapa principal (oct-2026): estilo vectorial de OpenFreeMap (gratis, sin
+// key ni límite), parecido a Google Maps: calles por jerarquía, parques,
+// íconos de lugares. Se dibuja con MapLibre DENTRO de Leaflet
+// (maplibre-gl-leaflet), así pines, grupos y ubicación siguen igual. Las
+// librerías (~250 KB) se cargan recién al abrir el mapa. Si algo falla (sin
+// WebGL, CDN caído, no carga en VECTOR_TIMEOUT ms) queda Esri, el de antes.
+const VECTOR = {
+  claro: "https://tiles.openfreemap.org/styles/liberty",
+  oscuro: "https://tiles.openfreemap.org/styles/dark",
+  attr: '<a href="https://openfreemap.org" target="_blank" rel="noopener">OpenFreeMap</a> ' +
+        '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>',
+  libs: [
+    ["css", "https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css",
+     "sha384-MinO0mNliZ3vwppuPOUnGa+iq619pfMhLVUXfC4LHwSCvF9H+6P/KO4Q7qBOYV5V"],
+    ["js", "https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js",
+     "sha384-SYKAG6cglRMN0RVvhNeBY0r3FYKNOJtznwA0v7B5Vp9tr31xAHsZC0DqkQ/pZDmj"],
+    ["js", "https://unpkg.com/@maplibre/maplibre-gl-leaflet@0.0.22/leaflet-maplibre-gl.js",
+     "sha384-4CB9Vtol9LN6lGgBCvmPLbUEZwilrqIvPieSRurgAXAB7FVJaLS9n8WyAIA5wjQ+"],
+  ],
+};
+const VECTOR_TIMEOUT = 8000;
+
+// Fotos: las publica el banco y algunas pesan 800 KB (PNG de BCI). Pasan por
+// wsrv.nl (proxy de imágenes libre y gratis): recorta a 16:9, WebP, ~30 KB.
+const foto = url => "https://wsrv.nl/?url=" + encodeURIComponent(url) +
+  "&w=640&h=360&fit=cover&a=attention&output=webp&q=72";
 const temaOscuro = () => matchMedia("(prefers-color-scheme: dark)").matches;
 const FORM_URL = "https://docs.google.com/forms/d/e/1FAIpQLScfOH3mzOrMN5hBaX74k2IFxHrfxanplOuyTMGKnz-a6hTYDA/viewform";
 // Envío directo al mismo Google Form (sin salir de la página). Los dos campos
@@ -607,27 +634,73 @@ function distancia(a, b) { // metros (haversine)
 }
 function fmtDist(m) { return m < 1000 ? `${Math.round(m / 10) * 10} m` : `${(m / 1000).toFixed(1)} km`; }
 
-let TILELAYER = null, TILELAYER_REF = null, FIRMA_VISTA = null;
+let TILELAYER = null, TILELAYER_REF = null, VECTORLAYER = null, FIRMA_VISTA = null;
 
 function crearMapa() {
-  MAPA = L.map("mapa", { scrollWheelZoom: true, zoomControl: false })
+  // maxZoom en el mapa (no solo en la capa de fondo): markercluster lo exige
+  // y el fondo ahora llega después, cuando cargan sus librerías.
+  MAPA = L.map("mapa", { scrollWheelZoom: true, zoomControl: false, maxZoom: 18 })
     .setView([-33.45, -70.66], 12);
   L.control.zoom({ position: "bottomright" }).addTo(MAPA);
-  const t = TILES[temaOscuro() ? "oscuro" : "claro"];
-  const opts = { attribution: TILES_ATTR, maxZoom: 18, maxNativeZoom: 15 };
-  // Dos capas superpuestas: el relleno/calles (Base) abajo, las etiquetas
-  // de calle/comuna (Reference, PNG transparente) arriba.
-  TILELAYER = L.tileLayer(t.base, opts).addTo(MAPA);
-  TILELAYER_REF = L.tileLayer(t.ref, opts).addTo(MAPA);
-
   CAPA = crearCapaMarcadores();
+  fondoVectorial().then(ok => { if (!ok) fondoEsri(); });
 
   // Si el visitante cambia el tema del sistema con el mapa abierto.
   matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => {
-    const t = TILES[temaOscuro() ? "oscuro" : "claro"];
-    if (TILELAYER) TILELAYER.setUrl(t.base);
-    if (TILELAYER_REF) TILELAYER_REF.setUrl(t.ref);
+    const tema = temaOscuro() ? "oscuro" : "claro";
+    if (VECTORLAYER) VECTORLAYER.getMaplibreMap().setStyle(VECTOR[tema]);
+    if (TILELAYER) TILELAYER.setUrl(TILES[tema].base);
+    if (TILELAYER_REF) TILELAYER_REF.setUrl(TILES[tema].ref);
   });
+}
+
+// Respaldo: Esri en dos capas superpuestas, el relleno/calles (Base) abajo y
+// las etiquetas de calle/comuna (Reference, PNG transparente) arriba.
+function fondoEsri() {
+  const t = TILES[temaOscuro() ? "oscuro" : "claro"];
+  const opts = { attribution: TILES_ATTR, maxZoom: 18, maxNativeZoom: 15 };
+  TILELAYER = L.tileLayer(t.base, opts).addTo(MAPA);
+  TILELAYER_REF = L.tileLayer(t.ref, opts).addTo(MAPA);
+}
+
+function cargarLib([tipo, url, sri]) {
+  return new Promise((ok, mal) => {
+    const el = document.createElement(tipo === "css" ? "link" : "script");
+    if (tipo === "css") { el.rel = "stylesheet"; el.href = url; } else el.src = url;
+    el.integrity = sri; el.crossOrigin = "anonymous";
+    el.onload = ok; el.onerror = mal;
+    document.head.appendChild(el);
+  });
+}
+
+// true si quedó el mapa vectorial; false para usar Esri.
+async function fondoVectorial() {
+  try {
+    for (const lib of VECTOR.libs) await cargarLib(lib);
+    if (!L.maplibreGL) return false;
+    const capa = L.maplibreGL({
+      style: VECTOR[temaOscuro() ? "oscuro" : "claro"], attribution: VECTOR.attr,
+    });
+    // El mapa de MapLibre existe recién al agregar la capa. Se espera a que
+    // llegue su ESTILO (red), no a "load": "load" necesita pintar y una
+    // pestaña en segundo plano no pinta -caería a Esri sin razón. Si el
+    // estilo no llega en VECTOR_TIMEOUT (CDN caído, red mala), Esri.
+    const listo = new Promise(ok => {
+      const esperar = () => {
+        const gl = capa.getMaplibreMap?.();
+        if (!gl) return setTimeout(esperar, 50);
+        if (gl.isStyleLoaded()) ok(true); else gl.once("style.load", () => ok(true));
+      };
+      esperar();
+      setTimeout(() => ok(false), VECTOR_TIMEOUT);
+    });
+    capa.addTo(MAPA);
+    if (await listo) { VECTORLAYER = capa; return true; }
+    MAPA.removeLayer(capa);
+  } catch (e) {
+    console.warn("Mapa vectorial no disponible; se usa Esri.", e);
+  }
+  return false;
 }
 
 function crearCapaMarcadores() {
@@ -760,7 +833,15 @@ function card(d, bco) {
   const link = esc(d.url || bco.url);
   const locs = localesDelDia(d, state.dia);
   const cs = comunasDelDia(d, state.dia);
-  return `<article class="cardo" style="--bcolor:${bco.color}">
+  // Foto del banco arriba, con el % como etiqueta encima. Si no carga, la
+  // tarjeta vuelve a ser la de siempre (el % sigue en la fila).
+  const img = d.img ? `<div class="foto" aria-hidden="true">
+      <img src="${esc(foto(d.img))}" alt="" loading="lazy" decoding="async" width="640" height="360"
+        referrerpolicy="no-referrer" onerror="this.closest('.cardo').classList.remove('con-foto');this.parentNode.remove()">
+      <span class="etq"><span class="hasta">hasta</span>${d.pct}<i>%</i></span>
+    </div>` : "";
+  return `<article class="cardo${d.img ? " con-foto" : ""}" style="--bcolor:${bco.color}">
+    ${img}
     <div class="fila">
       <a class="nom" href="${link}" target="_blank" rel="noopener">${sub(d)}${esc(d.comercio)}</a>
       <div class="pct"><span class="hasta">hasta</span><span class="num">${d.pct}<i>%</i></span></div>

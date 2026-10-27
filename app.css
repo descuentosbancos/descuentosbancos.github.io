@@ -676,6 +676,35 @@ body {
   border-color: color-mix(in srgb, var(--tinta) 45%, var(--border));
 }
 
+/* Foto del local (la publica el banco): ocupa el ancho de la tarjeta, con
+   el % como etiqueta de oferta amarilla encima. Sin foto o si no carga, la
+   tarjeta es la de siempre y el % vuelve a la fila. */
+.cardo .foto {
+  position: relative;
+  margin: -15px -16px 2px;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  border-radius: var(--r-md) var(--r-md) 0 0;
+  background: color-mix(in srgb, var(--bcolor) 14%, var(--surface));
+}
+.cardo .foto img {
+  display: block; width: 100%; height: 100%; object-fit: cover;
+  transition: transform .35s ease;
+}
+.cardo:hover .foto img { transform: scale(1.04); }
+.cardo .foto .etq {
+  position: absolute; right: 10px; bottom: -1px;
+  display: inline-flex; align-items: baseline; gap: 3px;
+  background: var(--oferta, #ffd60a); color: #121412;
+  font-weight: 800; font-size: 26px; line-height: 1; font-stretch: 75%;
+  letter-spacing: -.02em;
+  padding: 6px 10px 5px; border-radius: 10px 10px 0 0;
+}
+.cardo .foto .etq i { font-style: normal; font-size: 16px; }
+.cardo .foto .etq .hasta { font-size: 10.5px; font-weight: 700; letter-spacing: .08em;
+                          text-transform: uppercase; font-stretch: 100%; }
+.cardo.con-foto .fila .pct { display: none; }
+
 .cardo .fila {
   display: flex;
   justify-content: space-between;
