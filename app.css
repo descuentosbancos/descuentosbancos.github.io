@@ -692,6 +692,9 @@ body {
   transition: transform .35s ease;
 }
 .cardo:hover .foto img { transform: scale(1.04); }
+.cardo .foto.logo { background: #fff; }
+.cardo .foto.logo img { padding: 14px 40px; object-fit: contain; }
+.cardo:hover .foto.logo img { transform: none; }
 .cardo .foto .etq {
   position: absolute; right: 10px; bottom: -1px;
   display: inline-flex; align-items: baseline; gap: 3px;

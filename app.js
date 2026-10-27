@@ -72,8 +72,12 @@ const VECTOR_TIMEOUT = 8000;
 
 // Fotos: las publica el banco y algunas pesan 800 KB (PNG de BCI). Pasan por
 // wsrv.nl (proxy de imágenes libre y gratis): recorta a 16:9, WebP, ~30 KB.
+// Algunos bancos (BICE) solo publican el LOGO del local: ese va entero sobre
+// blanco (recortado a 16:9 quedaba ilegible), no como foto.
+const esLogo = url => /logo/i.test(url.split("?")[0].split("/").pop());
 const foto = url => "https://wsrv.nl/?url=" + encodeURIComponent(url) +
-  "&w=640&h=360&fit=cover&a=attention&output=webp&q=72";
+  (esLogo(url) ? "&w=640&h=360&fit=contain&cbg=ffffff&output=webp&q=80"
+               : "&w=640&h=360&fit=cover&a=attention&output=webp&q=72");
 const temaOscuro = () => matchMedia("(prefers-color-scheme: dark)").matches;
 const FORM_URL = "https://docs.google.com/forms/d/e/1FAIpQLScfOH3mzOrMN5hBaX74k2IFxHrfxanplOuyTMGKnz-a6hTYDA/viewform";
 // Envío directo al mismo Google Form (sin salir de la página). Los dos campos
@@ -837,7 +841,7 @@ function card(d, bco) {
   const cs = comunasDelDia(d, state.dia);
   // Foto del banco arriba, con el % como etiqueta encima. Si no carga, la
   // tarjeta vuelve a ser la de siempre (el % sigue en la fila).
-  const img = d.img ? `<div class="foto" aria-hidden="true">
+  const img = d.img ? `<div class="foto${esLogo(d.img) ? " logo" : ""}" aria-hidden="true">
       <img src="${esc(foto(d.img))}" alt="" loading="lazy" decoding="async" width="640" height="360"
         referrerpolicy="no-referrer" onerror="this.closest('.cardo').classList.remove('con-foto');this.parentNode.remove()">
       <span class="etq"><span class="hasta">hasta</span>${d.pct}<i>%</i></span>
