@@ -75,6 +75,14 @@ const VECTOR_TIMEOUT = 8000;
 // Algunos bancos (BICE) solo publican el LOGO del local: ese va entero sobre
 // blanco (recortado a 16:9 quedaba ilegible), no como foto.
 const esLogo = url => /logo/i.test(url.split("?")[0].split("/").pop());
+// Si el proxy falla (itaubeneficios.cl le responde 403 a wsrv), se intenta
+// una vez la imagen original del banco antes de dejar la tarjeta sin foto.
+function sinFoto(img, quitar) {
+  if (img.dataset.orig && img.src !== img.dataset.orig) {
+    img.src = img.dataset.orig;
+    img.dataset.orig = "";
+  } else quitar();
+}
 const foto = url => "https://wsrv.nl/?url=" + encodeURIComponent(url) +
   (esLogo(url) ? "&w=640&h=360&fit=contain&cbg=ffffff&output=webp&q=80"
                : "&w=640&h=360&fit=cover&a=attention&output=webp&q=72");
@@ -790,7 +798,7 @@ function popup(d, bco) {
     : "";
   return `<div class="pop">
     ${d.img ? `<img class="pop-foto" src="${esc(foto(d.img))}" alt="" width="640" height="360"
-      referrerpolicy="no-referrer" onerror="this.remove()">` : ""}
+      referrerpolicy="no-referrer" data-orig="${esc(d.img)}" onerror="sinFoto(this, () => this.remove())">` : ""}
     <div class="pop-top">
       <div class="pop-pct" style="color:${bco.pin}">${d.pct}<i>%</i></div>
       <div>
@@ -843,7 +851,7 @@ function card(d, bco) {
   // tarjeta vuelve a ser la de siempre (el % sigue en la fila).
   const img = d.img ? `<div class="foto${esLogo(d.img) ? " logo" : ""}" aria-hidden="true">
       <img src="${esc(foto(d.img))}" alt="" loading="lazy" decoding="async" width="640" height="360"
-        referrerpolicy="no-referrer" onerror="this.closest('.cardo').classList.remove('con-foto');this.parentNode.remove()">
+        referrerpolicy="no-referrer" data-orig="${esc(d.img)}" onerror="sinFoto(this, () => {this.closest('.cardo').classList.remove('con-foto');this.parentNode.remove()})">
       <span class="etq"><span class="hasta">hasta</span>${d.pct}<i>%</i></span>
     </div>` : "";
   return `<article class="cardo${d.img ? " con-foto" : ""}" style="--bcolor:${bco.color}">
