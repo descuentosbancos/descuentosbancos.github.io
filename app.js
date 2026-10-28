@@ -70,6 +70,42 @@ const VECTOR = {
 };
 const VECTOR_TIMEOUT = 8000;
 
+// Mapa principal (28-oct-2026): Google Maps de verdad, como biteclub.cl.
+// Proyecto "descuentosbancos" en Google Cloud (cuenta de Diego). La key es
+// pública por diseño (va en el navegador): la protege su restricción a
+// https://descuentosbancos.github.io/* y a Maps JavaScript API. Tope duro en
+// Google Cloud: 300 cargas de mapa al día (~9.000/mes, dentro del tramo
+// gratis de 10.000); pasado eso Google no entrega el mapa y se cae a
+// OpenFreeMap, luego a Esri. Se dibuja con GoogleMutant DENTRO de Leaflet,
+// así pines, grupos y ubicación siguen igual. Cada apertura del mapa = 1
+// carga facturable: el script se pide recién al abrir el mapa.
+const GOOGLE = {
+  key: "AIzaSyB6srONcRglIKiyTTIYCqiPnYW7ZKigpUk",
+  lib: ["js", "https://unpkg.com/leaflet.gridlayer.googlemutant@0.16.0/dist/Leaflet.GoogleMutant.js",
+        "sha384-NVeApJLhFaaKalRqZ2xBNeRECGMKMkF5VMTDJtXWk2g0Tq+5Jo1N7CZjhL3gQSFW"],
+  claro: [],
+  // Variante "noche" de la documentación de Google, más apagada.
+  oscuro: [
+    { elementType: "geometry", stylers: [{ color: "#242f3e" }] },
+    { elementType: "labels.text.stroke", stylers: [{ color: "#242f3e" }] },
+    { elementType: "labels.text.fill", stylers: [{ color: "#9aa3ad" }] },
+    { featureType: "administrative.locality", elementType: "labels.text.fill", stylers: [{ color: "#c9b28a" }] },
+    { featureType: "poi", elementType: "labels.text.fill", stylers: [{ color: "#a8957a" }] },
+    { featureType: "poi.park", elementType: "geometry", stylers: [{ color: "#263c3f" }] },
+    { featureType: "poi.park", elementType: "labels.text.fill", stylers: [{ color: "#6b9a76" }] },
+    { featureType: "road", elementType: "geometry", stylers: [{ color: "#38414e" }] },
+    { featureType: "road", elementType: "geometry.stroke", stylers: [{ color: "#212a37" }] },
+    { featureType: "road", elementType: "labels.text.fill", stylers: [{ color: "#9ca5b3" }] },
+    { featureType: "road.highway", elementType: "geometry", stylers: [{ color: "#746855" }] },
+    { featureType: "road.highway", elementType: "geometry.stroke", stylers: [{ color: "#1f2835" }] },
+    { featureType: "road.highway", elementType: "labels.text.fill", stylers: [{ color: "#f3d19c" }] },
+    { featureType: "transit", elementType: "geometry", stylers: [{ color: "#2f3948" }] },
+    { featureType: "transit.station", elementType: "labels.text.fill", stylers: [{ color: "#a8957a" }] },
+    { featureType: "water", elementType: "geometry", stylers: [{ color: "#17263c" }] },
+    { featureType: "water", elementType: "labels.text.fill", stylers: [{ color: "#515c6d" }] },
+  ],
+};
+
 // Fotos: las publica el banco y algunas pesan 800 KB (PNG de BCI). Pasan por
 // wsrv.nl (proxy de imágenes libre y gratis): recorta a 16:9, WebP, ~30 KB.
 // Algunos bancos (BICE) solo publican el LOGO del local: ese va entero sobre
@@ -724,7 +760,7 @@ function distancia(a, b) { // metros (haversine)
 }
 function fmtDist(m) { return m < 1000 ? `${Math.round(m / 10) * 10} m` : `${(m / 1000).toFixed(1)} km`; }
 
-let TILELAYER = null, TILELAYER_REF = null, VECTORLAYER = null, FIRMA_VISTA = null;
+let TILELAYER = null, TILELAYER_REF = null, VECTORLAYER = null, GMAP = null, FIRMA_VISTA = null;
 
 function crearMapa() {
   // maxZoom en el mapa (no solo en la capa de fondo): markercluster lo exige
@@ -733,11 +769,14 @@ function crearMapa() {
     .setView([-33.45, -70.66], 12);
   L.control.zoom({ position: "bottomright" }).addTo(MAPA);
   CAPA = crearCapaMarcadores();
-  fondoVectorial().then(ok => { if (!ok) fondoEsri(); });
+  fondoGoogle()
+    .then(ok => ok || fondoVectorial())
+    .then(ok => { if (!ok) fondoEsri(); });
 
   // Si el visitante cambia el tema del sistema con el mapa abierto.
   matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => {
     const tema = temaOscuro() ? "oscuro" : "claro";
+    if (GMAP) GMAP.setOptions({ styles: GOOGLE[tema] });
     if (VECTORLAYER) VECTORLAYER.getMaplibreMap().setStyle(VECTOR[tema]);
     if (TILELAYER) TILELAYER.setUrl(TILES[tema].base);
     if (TILELAYER_REF) TILELAYER_REF.setUrl(TILES[tema].ref);
@@ -761,6 +800,49 @@ function cargarLib([tipo, url, sri]) {
     el.onload = ok; el.onerror = mal;
     document.head.appendChild(el);
   });
+}
+
+// Script de Google: no admite SRI (lo sirve dinámico). Resuelve con
+// google.maps listo; rechaza si el script no carga.
+function cargarGoogle() {
+  return new Promise((ok, mal) => {
+    window.__gmListo = ok;
+    const el = document.createElement("script");
+    el.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE.key}` +
+             "&loading=async&callback=__gmListo&language=es&region=CL";
+    el.async = true; el.onerror = mal;
+    document.head.appendChild(el);
+  });
+}
+
+// true si quedó Google; false para probar OpenFreeMap. "Quedó" = llegó al
+// menos un tile a Leaflet: con la cuota del día agotada o la key rechazada,
+// Google pinta su aviso de error en vez de tiles y nunca llega ninguno.
+async function fondoGoogle() {
+  let capa = null;
+  try {
+    // gm_authFailure: la key no autenticó (referrer no permitido,
+    // facturación). Google lo llama cuando quiera, antes o después de cargar.
+    const falla = new Promise(ok => { window.gm_authFailure = () => ok(false); });
+    if (await Promise.race([cargarGoogle().then(() => true), falla]) === false) throw new Error("key rechazada");
+    await cargarLib(GOOGLE.lib);
+    if (!L.gridLayer.googleMutant) return false;
+    capa = L.gridLayer.googleMutant({
+      type: "roadmap", maxZoom: 18, styles: GOOGLE[temaOscuro() ? "oscuro" : "claro"],
+    });
+    capa.on("spawned", e => { GMAP = e.mapObject; });
+    const listo = new Promise(ok => {
+      capa.once("tileload", () => ok(true));
+      setTimeout(() => ok(false), VECTOR_TIMEOUT);
+    });
+    capa.addTo(MAPA);
+    if (await Promise.race([listo, falla])) return true;
+  } catch (e) {
+    console.warn("Google Maps no disponible; se usa OpenFreeMap.", e);
+  }
+  if (capa) MAPA.removeLayer(capa);
+  GMAP = null;
+  return false;
 }
 
 // true si quedó el mapa vectorial; false para usar Esri.
