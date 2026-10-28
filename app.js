@@ -73,7 +73,7 @@ const VECTOR_TIMEOUT = 8000;
 // Mapa principal (28-oct-2026): Google Maps de verdad, como biteclub.cl.
 // Proyecto "descuentosbancos" en Google Cloud (cuenta de Diego). La key es
 // pública por diseño (va en el navegador): la protege su restricción a
-// https://descuentosbancos.github.io/* y a Maps JavaScript API. Tope duro en
+// https://descuentosbancos.cl/* (y la .github.io de antes) y a Maps JavaScript API. Tope duro en
 // Google Cloud: 300 cargas de mapa al día (~9.000/mes, dentro del tramo
 // gratis de 10.000); pasado eso Google no entrega el mapa y se cae a
 // OpenFreeMap, luego a Esri. Se dibuja con GoogleMutant DENTRO de Leaflet,

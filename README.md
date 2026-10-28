@@ -1,4 +1,6 @@
-# descuentosbancos.github.io
+# descuentosbancos.cl
+
+Sitio público (GitHub Pages, repo descuentosbancos.github.io; dominio propio desde el 28-oct-2026).
 
 Sitio estático de **DescuentosBancos** — descuentos en comida · Santiago (GitHub Pages).
 
