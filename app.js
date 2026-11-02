@@ -904,6 +904,12 @@ function crearCapaMarcadores() {
   }).addTo(MAPA);
 }
 
+// Todas las sucursales con ubicación de una oferta: [lat, lng] principal
+// + "pts" (las demás). Cadenas como Tanta o Kento tienen varias.
+function puntos(d) {
+  return typeof d.lat === "number" ? [[d.lat, d.lng], ...(d.pts || [])] : [];
+}
+
 function renderMapa(items) {
   if (!MAPA) crearMapa();
   setTimeout(() => MAPA.invalidateSize(), 50); // por el hidden previo
@@ -918,9 +924,11 @@ function renderMapa(items) {
       className: "", iconSize: [34, 34], iconAnchor: [17, 17],
       html: `<div class="pin-num" style="--pincolor:${bco.pin}">${d.pct}<i>%</i></div>`,
     });
-    marcadores.push(L.marker([d.lat, d.lng], { icon, pct: d.pct })
-      .bindPopup(popup(d, bco), { closeButton: true, maxWidth: 260 }));
-    bounds.push([d.lat, d.lng]);
+    for (const pt of puntos(d)) {
+      marcadores.push(L.marker(pt, { icon, pct: d.pct })
+        .bindPopup(popup(d, bco, pt), { closeButton: true, maxWidth: 260 }));
+      bounds.push(pt);
+    }
   }
   // addLayers es del plugin; L.layerGroup (el respaldo) solo tiene addLayer.
   if (CAPA.addLayers) CAPA.addLayers(marcadores);
@@ -941,7 +949,7 @@ function renderMapa(items) {
   FIRMA_VISTA = firma;
 }
 
-function popup(d, bco) {
+function popup(d, bco, pt = [d.lat, d.lng]) {
   const locs = localesDelDia(d, state.dia);
   // dias_confirmados=false: la ficha no dijo ningún día, "dias" es un
   // supuesto -no se muestra como si fuera un hecho (mismo criterio del correo).
@@ -952,7 +960,7 @@ function popup(d, bco) {
   const porLocal = locs.length && variaPorLocal(d, state.dia)
     ? `<div class="pop-locales"><b>${soloEn()}</b> ${locs.map(nombreLocal).join(" · ")}</div>`
     : "";
-  const ruta = `https://www.google.com/maps/dir/?api=1&destination=${d.lat},${d.lng}`;
+  const ruta = `https://www.google.com/maps/dir/?api=1&destination=${pt[0]},${pt[1]}`;
   const ver = d.url
     ? `<a class="pl-primario" style="background:${bco.pin}" href="${esc(d.url)}" target="_blank" rel="noopener">Ver oferta →</a>`
     : "";
@@ -975,13 +983,15 @@ function popup(d, bco) {
 function marcarCercano(conGeo) {
   const info = document.getElementById("mapa-info");
   if (!conGeo.length) { info.textContent = "No hay locales con ubicación para este filtro."; return; }
-  let mejor = null, dmin = Infinity;
+  let mejor = null, ptMejor = null, dmin = Infinity;
   for (const d of conGeo) {
-    const dist = distancia(state.user, d);
-    if (dist < dmin) { dmin = dist; mejor = d; }
+    for (const pt of puntos(d)) {
+      const dist = distancia(state.user, { lat: pt[0], lng: pt[1] });
+      if (dist < dmin) { dmin = dist; mejor = d; ptMejor = pt; }
+    }
   }
   info.innerHTML = `📍 Más cerca: <b>${esc(mejor.comercio)}</b> (${mejor.pct}%, a ${fmtDist(dmin)})`;
-  MAPA.fitBounds([[state.user.lat, state.user.lng], [mejor.lat, mejor.lng]],
+  MAPA.fitBounds([[state.user.lat, state.user.lng], ptMejor],
     { padding: [60, 60], maxZoom: 16 });
 }
 
