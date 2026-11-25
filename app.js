@@ -586,7 +586,7 @@ function render() {
       .join("");
 
   // Entrada al mapa desde la lista, con cuántos locales tienen ubicación.
-  const conGeoN = items.filter(d => typeof d.lat === "number").length;
+  const conGeoN = items.filter(d => puntos(d).length).length;
   const mp = document.getElementById("mapa-preview");
   mp.hidden = state.vista === "mapa" || !conGeoN;
   document.getElementById("mapa-preview-n").textContent =
@@ -904,9 +904,15 @@ function crearCapaMarcadores() {
   }).addTo(MAPA);
 }
 
-// Todas las sucursales con ubicación de una oferta: [lat, lng] principal
-// + "pts" (las demás). Cadenas como Tanta o Kento tienen varias.
+// Sucursales con ubicación de una oferta para el DÍA elegido. Si el banco
+// publica días por local (l.d) y el local trae su punto (l.p), solo salen
+// los que valen ese día: un domingo, Take a Wok NO puede marcar Mallplaza
+// Egaña (vale lun-jue) ni "Más cerca" mandar ahí (auditoría 25-nov-2026).
+// Sin puntos por local: [lat, lng] principal + "pts" (las demás).
 function puntos(d) {
+  if (d.locales && d.locales.some(l => l.p)) {
+    return localesDelDia(d, state.dia).filter(l => l.p).map(l => l.p);
+  }
   return typeof d.lat === "number" ? [[d.lat, d.lng], ...(d.pts || [])] : [];
 }
 
@@ -914,7 +920,7 @@ function renderMapa(items) {
   if (!MAPA) crearMapa();
   setTimeout(() => MAPA.invalidateSize(), 50); // por el hidden previo
 
-  const conGeo = items.filter(d => typeof d.lat === "number");
+  const conGeo = items.filter(d => puntos(d).length);
   CAPA.clearLayers();
   const marcadores = [], bounds = [];
   // Los de mayor % se agregan al final para que queden ENCIMA al solaparse.
